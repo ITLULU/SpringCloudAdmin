@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql8
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vue
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/var/lib/mysql
+      - ./logs:/var/log/mysql
+      - ./conf/my.cnf:/etc/my.cnf
+      - ./conf/conf.d:/etc/mysql/conf.d
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network

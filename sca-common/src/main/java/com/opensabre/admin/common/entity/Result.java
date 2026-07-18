@@ -23,14 +23,14 @@ import java.time.LocalDateTime;
 @Getter
 public class Result<T> {
 
-    public static final String SUCCESSFUL_CODE = "000000";
-    public static final String SUCCESSFUL_MESG = "处理成功";
+    public static final String SUCCESSFUL_CODE = "200";
+    public static final String SUCCESSFUL_MESG = "success";
 
     @Schema(title = "处理结果code", required = true)
     private final String code;
 
     @Schema(title = "处理结果描述信息")
-    private final String mesg;
+    private final String msg;
 
     @Schema(title = "请求结果生成时间戳", required = true)
     @JsonFormat(pattern = DatePattern.UTC_MS_PATTERN)
@@ -44,13 +44,13 @@ public class Result<T> {
 
     public Result() {
         this.code = SUCCESSFUL_CODE;
-        this.mesg = SUCCESSFUL_MESG;
+        this.msg = SUCCESSFUL_MESG;
         this.time = LocalDateTime.now();
     }
 
     public Result(ErrorType errorType) {
         this.code = errorType.getCode();
-        this.mesg = errorType.getMesg();
+        this.msg = errorType.getMesg();
         this.time = LocalDateTime.now();
     }
 
@@ -59,9 +59,9 @@ public class Result<T> {
         this.data = data;
     }
 
-    private Result(String code, String mesg, T data) {
+    private Result(String code, String msg, T data) {
         this.code = code;
-        this.mesg = mesg;
+        this.msg = msg;
         this.data = data;
         this.time = LocalDateTime.now();
     }

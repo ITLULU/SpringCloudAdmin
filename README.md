@@ -229,3 +229,33 @@ git config --global http.proxy http://127.0.0.1:7897
 git config --global --unset http.proxy
 git config --global --unset https.proxy
 ```
+
+
+### docker镜像拉取问题
+Error response from daemon: Get "https://registry-1.docker.io/v2/": dial tcp 31.13.84.34:443: i/o timeout
+
+https://github.com/DaoCloud/public-image-mirror
+
+
+ vi /etc/docker/daemon.json
+
+
+```
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io"
+  ]
+}
+```
+
+
+```
+# 加载配置
+sudo systemctl daemon-reload 
+# 重启 docker
+sudo systemctl restart docker 
+#查看 docker 状态
+sudo systemctl status docker
+```
+
+docker run -d -P m.daocloud.io/docker.io/library/nginx
