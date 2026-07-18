@@ -1,0 +1,29 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: sca-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yml
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: sca-web
+          uri: lb://sca-web
+          predicates:
+            - Path=/api/web/**
+          filters:
+            - StripPrefix=1
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

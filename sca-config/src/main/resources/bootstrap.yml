@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: sca-config
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        file-extension: yml
+        group: DEFAULT_GROUP
+        prefix: ${spring.application.name}

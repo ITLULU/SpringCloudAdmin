@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.opensabre.admin</groupId>
+    <artifactId>springalibabadmin</artifactId>
+    <packaging>pom</packaging>
+    <version>${revision}</version>
+
+    <modules>
+        <module>sca-common</module>
+        <module>sca-dao</module>
+        <module>sca-service</module>
+        <module>sca-rpc</module>
+        <module>sca-web</module>
+        <module>sca-config</module>
+        <module>sca-gateway</module>
+        <module>sca-security</module>
+        <module>sca-es</module>
+    </modules>
+
+    <name>SpringCloudAdmin</name>
+    <description>基于Spring Cloud Alibaba的微服务后台管理平台</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <revision>0.0.1-SNAPSHOT</revision>
+
+        <!-- ======================== -->
+        <!--    Spring 生态版本       -->
+        <!-- ======================== -->
+        <spring.boot.version>3.2.4</spring.boot.version>
+        <spring.cloud.version>2023.0.1</spring.cloud.version>
+        <spring.cloud.alibaba.version>2023.0.1.0</spring.cloud.alibaba.version>
+
+        <!-- ======================== -->
+        <!--    持久层               -->
+        <!-- ======================== -->
+        <mybatis-plus-boot-starter.version>3.5.5</mybatis-plus-boot-starter.version>
+        <mysql-connector-j.version>8.3.0</mysql-connector-j.version>
+
+        <!-- ======================== -->
+        <!--    缓存                 -->
+        <!-- ======================== -->
+        <jetcache-starter-redis.version>2.7.6</jetcache-starter-redis.version>
+
+        <!-- ======================== -->
+        <!--    API文档              -->
+        <!-- ======================== -->
+        <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
+        <swagger-annotations.version>2.2.20</swagger-annotations.version>
+
+        <!-- ======================== -->
+        <!--    工具库               -->
+        <!-- ======================== -->
+        <lombok.version>1.18.32</lombok.version>
+        <hutool.version>5.8.26</hutool.version>
+        <guava.version>33.0.0-jre</guava.version>
+        <commons-lang3.version>3.14.0</commons-lang3.version>
+
+        <!-- ======================== -->
+        <!--    安全                 -->
+        <!-- ======================== -->
+        <jasypt-springboot.version>3.0.5</jasypt-springboot.version>
+
+        <!-- ======================== -->
+        <!--    测试                 -->
+        <!-- ======================== -->
+        <junit-jupiter.version>5.10.2</junit-jupiter.version>
+
+        <!-- ======================== -->
+        <!--    构建插件             -->
+        <!-- ======================== -->
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
+    </properties>
+
+    <!-- ================================ -->
+    <!--    统一依赖版本管理              -->
+    <!-- ================================ -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud Alibaba BOM -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring.cloud.alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Hutool BOM -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-bom</artifactId>
+                <version>${hutool.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- hutool-all (BOM不包含此聚合包，需显式声明) -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+
+            <!-- ===== 项目内部模块 ===== -->
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-common</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-dao</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-rpc</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-web</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-config</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-gateway</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-security</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-es</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- ===== 持久层 ===== -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus-boot-starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-extension</artifactId>
+                <version>${mybatis-plus-boot-starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>${mysql-connector-j.version}</version>
+            </dependency>
+
+            <!-- ===== 缓存 ===== -->
+            <dependency>
+                <groupId>com.alicp.jetcache</groupId>
+                <artifactId>jetcache-starter-redis-lettuce</artifactId>
+                <version>${jetcache-starter-redis.version}</version>
+            </dependency>
+
+            <!-- ===== API文档 ===== -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger-annotations.version}</version>
+            </dependency>
+
+            <!-- ===== 工具库 ===== -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ulisesbocchio</groupId>
+                <artifactId>jasypt-spring-boot-starter</artifactId>
+                <version>${jasypt-springboot.version}</version>
+            </dependency>
+
+            <!-- ===== 测试 ===== -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>build-info</goal>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <flattenedPomFilename>pom-xml-flattened</flattenedPomFilename>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
