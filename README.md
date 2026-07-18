@@ -1,0 +1,2 @@
+# SpringCloudAdmin
+基于springcloud的微服务后台平台，整合了spring alibaba系列组件
