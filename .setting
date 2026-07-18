@@ -1,0 +1,32 @@
+reids ：
+```
+host: 192.168.235.128
+name:root
+password:root
+```
+
+
+mysql:
+```
+host: 192.168.235.128
+name:root
+password:root
+```
+
+
+nacos ：
+```
+host: 192.168.235.128
+name:nacos
+password:nacos
+```
+
+kafka ：
+```
+host: 192.168.235.128
+```
+
+gatweay ：
+```
+host: 192.168.235.128
+```

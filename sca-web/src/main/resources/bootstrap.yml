@@ -1,8 +1,12 @@
 spring:
   application:
-    name: sca-config
+    name: sca-web
   cloud:
     nacos:
+      discovery:
+        server-addr: 192.168.235.128:8848
+        username: nacos
+        password: nacos
       config:
         server-addr: 192.168.235.128:8848
         username: nacos
