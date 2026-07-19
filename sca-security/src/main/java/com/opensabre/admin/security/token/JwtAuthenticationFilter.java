@@ -1,6 +1,7 @@
 package com.opensabre.admin.security.token;
 
 import com.opensabre.admin.common.util.UserContextHolder;
+import com.opensabre.admin.security.config.SecurityProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,10 +30,13 @@ import java.util.Map;
  * 3. 从 Token 中解析用户名，加载用户详情
  * 4. 校验用户状态（是否启用、是否锁定）
  * 5. 设置 SecurityContext 和 UserContextHolder（供业务层使用）
+ * 6. 滑动窗口模式：检查Token剩余时间，不足时自动续期并通过响应头返回新Token
  * </p>
  * <p>
- * 注意：此过滤器不会拦截请求。如果 Token 无效或缺失，请求仍以匿名身份继续，
- * 后续的 Security 授权规则（@PreAuthorize / permitAll）决定是否放行。
+ * 续期策略（根据 security.renewal.mode 配置）：
+ * - none: 不续期
+ * - refresh-token: 通过 /api/auth/refresh 接口手动刷新（Filter不处理）
+ * - sliding-window: 自动检查并续期，新Token通过响应头 Authorization 返回
  * </p>
  */
 @Slf4j
@@ -42,10 +46,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
+    /**
+     * 滑动窗口续期时，新Token放入此响应头
+     */
+    private static final String RENEWAL_HEADER = "X-Token-Renewed";
+
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
     @Autowired
     private UserDetailsService userDetailsService;
+
+    @Autowired
+    private SecurityProperties securityProperties;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -66,7 +79,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 3. 从 Token 中解析用户名
+            // 3. 校验是否为 AccessToken（RefreshToken 不能用于API访问）
+            if (!jwtTokenProvider.isAccessToken(token)) {
+                log.debug("非AccessToken，拒绝认证, URI: {}", request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 4. 从 Token 中解析用户名
             String username = jwtTokenProvider.getUsernameFromToken(token);
             if (!StringUtils.hasText(username)) {
                 log.warn("JWT Token中用户名为空, URI: {}", request.getRequestURI());
@@ -74,14 +94,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 4. 如果 SecurityContext 中已有认证信息，不重复加载
+            // 5. 如果 SecurityContext 中已有认证信息，不重复加载
             SecurityContext context = SecurityContextHolder.getContext();
             if (context.getAuthentication() != null) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // 5. 加载用户详情（含角色、权限）
+            // 6. 加载用户详情（含角色、权限）
             UserDetails userDetails;
             try {
                 userDetails = userDetailsService.loadUserByUsername(username);
@@ -92,7 +112,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 6. 校验用户状态（是否启用、账户是否过期/锁定）
+            // 7. 校验用户状态（是否启用、账户是否过期/锁定）
             if (!isUserValid(userDetails)) {
                 log.warn("用户状态异常 [{}]，拒绝认证。enabled={}, accountNonExpired={}, accountNonLocked={}, credentialsNonExpired={}",
                         username,
@@ -104,14 +124,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 7. 构建认证对象并设置到 SecurityContext
+            // 8. 构建认证对象并设置到 SecurityContext
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             context.setAuthentication(authentication);
 
-            // 8. 设置用户上下文（供业务层通过 UserContextHolder 获取当前用户名）
+            // 9. 设置用户上下文（供业务层通过 UserContextHolder 获取当前用户名）
             UserContextHolder.getInstance().setContext(Map.of(UserContextHolder.KEY_USERNAME, username));
+
+            // 10. 滑动窗口续期：检查Token剩余时间，不足时自动签发新Token
+            handleSlidingWindowRenewal(token, username, response);
 
             log.debug("JWT认证成功: {}, URI: {}", username, request.getRequestURI());
 
@@ -122,6 +145,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 继续执行后续过滤器和业务逻辑
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 滑动窗口续期处理
+     * <p>
+     * 当续期模式为 sliding-window 时，检查当前Token剩余有效时间。
+     * 如果剩余时间 < 总时间 * threshold，则自动签发新Token并通过响应头返回。
+     * </p>
+     * <p>
+     * 前端需从响应头读取新Token并更新本地存储：
+     * - X-Token-Renewed: true（表示有新Token）
+     * - Authorization: Bearer {newToken}（新Token）
+     * </p>
+     *
+     * @param token    当前请求的Token
+     * @param username 用户名
+     * @param response HTTP响应
+     */
+    private void handleSlidingWindowRenewal(String token, String username, HttpServletResponse response) {
+        if (securityProperties.getRenewal().getMode() != SecurityProperties.RenewalMode.SLIDING_WINDOW) {
+            return;
+        }
+
+        double threshold = securityProperties.getRenewal().getSlidingWindowThreshold();
+        if (jwtTokenProvider.shouldRenew(token, threshold)) {
+            // 签发新Token
+            String newToken = jwtTokenProvider.createAccessToken(username);
+            // 通过响应头返回新Token
+            response.setHeader(RENEWAL_HEADER, "true");
+            response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newToken);
+            log.debug("滑动窗口续期: 已为用户[{}]签发新Token", username);
+        }
     }
 
     /**

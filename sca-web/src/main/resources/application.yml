@@ -26,10 +26,19 @@ springdoc:
 security:
   jwt:
     secret: SpringCloudAdmin-Secret-Key-2024-Must-Be-At-Least-32-Chars
-    expiration: 86400000  # 24小时（毫秒）
+    expiration: 86400000  # AccessToken过期时间：24小时（毫秒）
+  # Token续期策略配置
+  renewal:
+    # 续期模式：none(不续期) / refresh-token(双Token) / sliding-window(滑动窗口)
+    mode: none
+    # RefreshToken过期时间：1天（毫秒），仅refresh-token模式生效
+    refresh-token-expiration: 86400000
+    # 滑动窗口阈值：0.33表示剩余不足1/3时自动续期，仅sliding-window模式生效
+    sliding-window-threshold: 0.33
   # 放行路径配置（不需要登录即可访问的接口）
   permit-urls:
     - /api/auth/login
+    - /api/auth/refresh
     - /api/health
     - /actuator/**
     - /swagger-ui/**

@@ -42,7 +42,8 @@ public class SecurityConfig {
     public JwtTokenProvider jwtTokenProvider(SecurityProperties properties) {
         return new JwtTokenProvider(
                 properties.getJwt().getSecret(),
-                properties.getJwt().getExpiration()
+                properties.getJwt().getExpiration(),
+                properties.getRenewal().getRefreshTokenExpiration()
         );
     }
 
