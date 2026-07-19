@@ -67,6 +67,7 @@
         <!--    安全                 -->
         <!-- ======================== -->
         <jasypt-springboot.version>3.0.5</jasypt-springboot.version>
+        <jjwt.version>0.12.5</jjwt.version>
 
         <!-- ======================== -->
         <!--    测试                 -->
@@ -223,6 +224,23 @@
                 <groupId>com.github.ulisesbocchio</groupId>
                 <artifactId>jasypt-spring-boot-starter</artifactId>
                 <version>${jasypt-springboot.version}</version>
+            </dependency>
+
+            <!-- ===== 安全 ===== -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
             </dependency>
 
             <!-- ===== 测试 ===== -->

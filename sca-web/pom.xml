@@ -24,6 +24,11 @@
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-rpc</artifactId>
         </dependency>
+        <!-- 安全认证 -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-security</artifactId>
+        </dependency>
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

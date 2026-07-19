@@ -21,3 +21,18 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# 安全配置
+security:
+  jwt:
+    secret: SpringCloudAdmin-Secret-Key-2024-Must-Be-At-Least-32-Chars
+    expiration: 86400000  # 24小时（毫秒）
+  # 放行路径配置（不需要登录即可访问的接口）
+  permit-urls:
+    - /api/auth/login
+    - /api/health
+    - /actuator/**
+    - /swagger-ui/**
+    - /swagger-ui.html
+    - /v3/api-docs/**
+    - /error
