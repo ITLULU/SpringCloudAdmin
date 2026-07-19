@@ -13,8 +13,8 @@ import com.opensabre.admin.security.token.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -38,16 +38,21 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 @Tag(name = "认证管理", description = "登录、刷新Token、获取当前用户信息")
 public class AuthController {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;
-    private final SecurityProperties securityProperties;
-    private final SysUserMapper sysUserMapper;
-    private final SysUserRoleMapper sysUserRoleMapper;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private UserDetailsService userDetailsService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private SecurityProperties securityProperties;
+    @Autowired
+    private SysUserMapper sysUserMapper;
+    @Autowired
+    private SysUserRoleMapper sysUserRoleMapper;
 
     /**
      * 普通用户角色ID（对应 sys_role 表中 role_key='user' 的记录）

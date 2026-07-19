@@ -2,7 +2,6 @@ package com.opensabre.admin.security.service;
 
 import com.opensabre.admin.dao.entity.po.SysUser;
 import com.opensabre.admin.dao.mapper.SysUserMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.DisabledException;
