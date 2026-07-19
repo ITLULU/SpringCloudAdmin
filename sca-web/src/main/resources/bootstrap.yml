@@ -9,8 +9,8 @@ spring:
         password: ${nacos.password}
       config:
         server-addr: 47.116.45.17:8848
-        username: nacos
-        password: nacos
+        username: ${nacos.username}
+        password: ${nacos.password}
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}

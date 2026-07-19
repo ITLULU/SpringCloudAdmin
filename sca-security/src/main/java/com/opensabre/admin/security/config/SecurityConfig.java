@@ -5,7 +5,6 @@ import com.opensabre.admin.security.handler.AccessDeniedHandlerImpl;
 import com.opensabre.admin.security.token.JwtAuthenticationFilter;
 import com.opensabre.admin.security.token.JwtTokenProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,7 +28,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @AutoConfiguration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(SecurityProperties.class)
 @ComponentScan(basePackages = "com.opensabre.admin.security")
 public class SecurityConfig {
 

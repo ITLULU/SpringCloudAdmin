@@ -3,8 +3,10 @@ server:
 
 
 spring:
+  profiles:
+    active: dev
   datasource:
-    url: jdbc:mysql:/47.116.45.17:${mysql.port}/sca_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: ${mysql.user}
     password: ${mysql.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
