@@ -1,59 +1,73 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getToken, setToken, removeToken } from '@/utils/auth'
-// import request from '@/utils/request'
+import { getToken, setToken, setRefreshToken, clearAllTokens } from '@/utils/auth'
+import request from '@/utils/request'
 
+/**
+ * 用户信息接口
+ */
 interface UserInfo {
-  id: number
   username: string
-  nickname: string
-  avatar: string
   roles: string[]
+  permissions: string[]
+}
+
+/**
+ * 登录响应数据
+ */
+interface LoginResult {
+  username: string
+  token?: string
+  accessToken?: string
+  refreshToken?: string
 }
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(getToken())
   const userInfo = ref<UserInfo | null>(null)
 
-  // 登录
+  /**
+   * 用户登录
+   * <p>
+   * 根据后端续期模式，返回数据格式不同：
+   * - mode=none: { token, username }
+   * - mode=refresh-token: { accessToken, refreshToken, username }
+   * - mode=sliding-window: { token, username }
+   * </p>
+   */
   async function login(username: string, password: string): Promise<void> {
-    // Mock 登录 - 后续替换为真实 API
-    if (username && password) {
-      const mockToken = 'mock-token-' + Date.now()
-      token.value = mockToken
-      setToken(mockToken)
-      // 实际项目中使用:
-      // const res = await request.post('/auth/login', { username, password })
-      // token.value = res.data.token
-      // setToken(res.data.token)
-    } else {
-      throw new Error('用户名和密码不能为空')
+    const res = await request.post<LoginResult>('/auth/login', { username, password })
+    const data = res.data
+
+    // 保存 Token（兼容两种返回格式）
+    const accessToken = data.accessToken || data.token
+    if (accessToken) {
+      token.value = accessToken
+      setToken(accessToken)
+    }
+
+    // RefreshToken 模式：保存 refreshToken
+    if (data.refreshToken) {
+      setRefreshToken(data.refreshToken)
     }
   }
 
-  // 获取用户信息
+  /**
+   * 获取当前用户信息（含角色和权限）
+   */
   async function getUserInfo(): Promise<UserInfo> {
-    if (!userInfo.value) {
-      // Mock 数据
-      userInfo.value = {
-        id: 1,
-        username: 'admin',
-        nickname: '管理员',
-        avatar: '',
-        roles: ['admin']
-      }
-      // 实际项目中使用:
-      // const res = await request.get('/auth/info')
-      // userInfo.value = res.data
-    }
-    return userInfo.value!
+    const res = await request.get<UserInfo>('/auth/info')
+    userInfo.value = res.data
+    return res.data
   }
 
-  // 退出登录
+  /**
+   * 退出登录
+   */
   function logout(): void {
     token.value = null
     userInfo.value = null
-    removeToken()
+    clearAllTokens()
   }
 
   return {

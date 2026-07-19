@@ -32,7 +32,7 @@
         </el-form-item>
       </el-form>
       <div class="login-tip">
-        提示：任意用户名密码即可登录（Mock模式）
+        请输入账号密码登录
       </div>
     </div>
   </div>
@@ -52,8 +52,8 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const loginForm = reactive({
-  username: 'admin',
-  password: '123456'
+  username: '',
+  password: ''
 })
 
 const rules: FormRules = {
