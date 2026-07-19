@@ -12,6 +12,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录', hidden: true }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/register/index.vue'),
+    meta: { title: '注册', hidden: true }
+  },
+  {
     path: '/404',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
@@ -71,7 +77,7 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   document.title = (to.meta.title as string) + ' - Admin'
   const token = getToken()
-  if (to.path === '/login') {
+  if (to.path === '/login' || to.path === '/register') {
     if (token) {
       next('/')
     } else {

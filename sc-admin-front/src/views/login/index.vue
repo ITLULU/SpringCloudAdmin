@@ -33,6 +33,10 @@
       </el-form>
       <div class="login-tip">
         请输入账号密码登录
+        <span class="login-divider">|</span>
+        <el-link type="primary" :underline="false" @click="router.push('/register')">
+          注册新账号
+        </el-link>
       </div>
     </div>
   </div>
@@ -113,5 +117,10 @@ async function handleLogin() {
   color: #999;
   font-size: 12px;
   margin-top: 10px;
+}
+
+.login-divider {
+  margin: 0 8px;
+  color: #ddd;
 }
 </style>

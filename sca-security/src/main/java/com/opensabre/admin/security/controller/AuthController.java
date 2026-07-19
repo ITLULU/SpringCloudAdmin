@@ -2,8 +2,13 @@ package com.opensabre.admin.security.controller;
 
 import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.exception.SystemErrorType;
+import com.opensabre.admin.dao.entity.po.SysUser;
+import com.opensabre.admin.dao.entity.po.SysUserRole;
+import com.opensabre.admin.dao.mapper.SysUserMapper;
+import com.opensabre.admin.dao.mapper.SysUserRoleMapper;
 import com.opensabre.admin.security.config.SecurityProperties;
 import com.opensabre.admin.security.request.LoginRequest;
+import com.opensabre.admin.security.request.RegisterRequest;
 import com.opensabre.admin.security.token.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +46,48 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final SecurityProperties securityProperties;
+    private final SysUserMapper sysUserMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
+
+    /**
+     * 普通用户角色ID（对应 sys_role 表中 role_key='user' 的记录）
+     */
+    private static final String DEFAULT_ROLE_ID = "2";
+
+    /**
+     * 用户注册
+     * <p>
+     * 注册成功后自动分配“普通用户”角色，需重新登录获取Token。
+     * </p>
+     */
+    @Operation(summary = "用户注册", description = "注册新用户，默认分配普通用户角色")
+    @PostMapping("/register")
+    public Result<Object> register(@Valid @RequestBody RegisterRequest request) {
+        String username = request.getUsername();
+
+        // 检查用户名是否已存在
+        SysUser existingUser = sysUserMapper.selectByUsername(username);
+        if (existingUser != null) {
+            return Result.fail("用户名已存在");
+        }
+
+        // 创建用户
+        SysUser newUser = new SysUser();
+        newUser.setUsername(username);
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        newUser.setNickname(username);
+        newUser.setStatus(1); // 正常状态
+        sysUserMapper.insert(newUser);
+
+        // 分配默认角色：普通用户
+        SysUserRole userRole = new SysUserRole();
+        userRole.setUserId(newUser.getId());
+        userRole.setRoleId(DEFAULT_ROLE_ID);
+        sysUserRoleMapper.insert(userRole);
+
+        log.info("用户注册成功: {}, 已分配默认角色[普通用户]", username);
+        return Result.success();
+    }
 
     /**
      * 用户登录

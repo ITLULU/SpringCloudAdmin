@@ -38,6 +38,7 @@ security:
   # 放行路径配置（不需要登录即可访问的接口）
   permit-urls:
     - /api/auth/login
+    - /api/auth/register
     - /api/auth/refresh
     - /api/health
     - /actuator/**
