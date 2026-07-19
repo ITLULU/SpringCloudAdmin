@@ -38,7 +38,8 @@ public class MybatisConfig {
         // 防止全表更新与删除
         interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
         // SQL性能规范插件
-        interceptor.addInnerInterceptor(new IllegalSQLInnerInterceptor());
+//        interceptor.addInnerInterceptor(new IllegalSQLInnerInterceptor());
+
         return interceptor;
     }
 }

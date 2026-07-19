@@ -24,7 +24,7 @@
         INNER JOIN sys_menu m ON rm.menu_id = m.id
         WHERE ur.user_id = #{userId}
           AND m.status = 1
-          AND m.permission != ''
+          AND m.permission <![CDATA[ != ]]> ''
           AND m.permission IS NOT NULL
     </select>
 
