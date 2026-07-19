@@ -259,3 +259,6 @@ sudo systemctl status docker
 ```
 
 docker run -d -P m.daocloud.io/docker.io/library/nginx
+
+docker pull m.daocloud.io/docker.io/nacos/nacos-server:v2.4.1
+

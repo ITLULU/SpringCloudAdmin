@@ -2,6 +2,9 @@
 -- SpringCloudAdmin RBAC 权限模型 DDL
 -- 数据库：MySQL 8.x
 -- =============================================
+create database sca_db;
+use sca_db;
+
 
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;

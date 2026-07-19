@@ -2,15 +2,15 @@ reids ：
 ```
 host: 192.168.235.128
 name:root
-password:root
+password:huang1020
 ```
 
 
 mysql:
 ```
 host: 192.168.235.128
-name:root
-password:root
+name:website
+password:website1020
 ```
 
 
