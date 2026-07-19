@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.opensabre.admin.dao.mapper.SysMenuMapper">
+
+    <!-- 根据用户ID查询菜单列表（通过角色关联，去重） -->
+    <select id="selectMenusByUserId" resultType="com.opensabre.admin.dao.entity.po.SysMenu">
+        SELECT DISTINCT m.*
+        FROM sys_user_role ur
+        INNER JOIN sys_role_menu rm ON ur.role_id = rm.role_id
+        INNER JOIN sys_menu m ON rm.menu_id = m.id
+        WHERE ur.user_id = #{userId}
+          AND m.status = 1
+        ORDER BY m.parent_id, m.sort
+    </select>
+
+</mapper>

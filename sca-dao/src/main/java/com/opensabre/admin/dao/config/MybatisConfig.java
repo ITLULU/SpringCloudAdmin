@@ -9,12 +9,14 @@ import com.opensabre.admin.dao.handler.PoMetaObjectHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.mybatis.spring.annotation.MapperScan;
 
 /**
  * MyBatis-Plus自动配置
  */
 @AutoConfiguration
 @EnableTransactionManagement
+@MapperScan("com.opensabre.admin.dao.mapper")
 public class MybatisConfig {
 
     /**

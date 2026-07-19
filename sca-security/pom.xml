@@ -19,6 +19,11 @@
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-common</artifactId>
         </dependency>
+        <!-- DAO层（数据库访问） -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-dao</artifactId>
+        </dependency>
         <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
