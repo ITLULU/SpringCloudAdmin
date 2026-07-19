@@ -15,7 +15,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -62,17 +64,28 @@ public class AuthController {
     }
 
     /**
-     * 获取当前登录用户信息
+     * 获取当前登录用户信息（含角色和权限列表）
      */
-    @Operation(summary = "获取当前用户信息", description = "需要携带Token访问")
+    @Operation(summary = "获取当前用户信息", description = "需要携带Token访问，返回角色和权限标识")
     @GetMapping("/info")
     public Result<Object> getUserInfo(
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetails userDetails) {
         Map<String, Object> info = new HashMap<>();
         info.put("username", userDetails.getUsername());
-        info.put("roles", userDetails.getAuthorities().stream()
-                .map(Object::toString)
-                .toList());
+
+        // 分离角色和权限标识
+        List<String> roles = new ArrayList<>();
+        List<String> permissions = new ArrayList<>();
+        userDetails.getAuthorities().forEach(auth -> {
+            String authority = auth.getAuthority();
+            if (authority != null && authority.startsWith("ROLE_")) {
+                roles.add(authority);
+            } else {
+                permissions.add(authority);
+            }
+        });
+        info.put("roles", roles);
+        info.put("permissions", permissions);
         return Result.success(info);
     }
 
