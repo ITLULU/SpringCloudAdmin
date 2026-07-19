@@ -7,7 +7,7 @@ public interface ErrorType {
     /**
      * 返回错误码
      */
-    String getCode();
+    Integer getCode();
 
     /**
      * 返回错误信息

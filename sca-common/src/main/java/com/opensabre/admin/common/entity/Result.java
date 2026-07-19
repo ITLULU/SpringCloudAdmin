@@ -23,11 +23,11 @@ import java.time.LocalDateTime;
 @Getter
 public class Result<T> {
 
-    public static final String SUCCESSFUL_CODE = "200";
+    public static final Integer SUCCESSFUL_CODE = 200;
     public static final String SUCCESSFUL_MESG = "success";
 
     @Schema(title = "处理结果code", required = true)
-    private final String code;
+    private final Integer code;
 
     @Schema(title = "处理结果描述信息")
     private final String msg;
@@ -59,7 +59,7 @@ public class Result<T> {
         this.data = data;
     }
 
-    private Result(String code, String msg, T data) {
+    private Result(Integer code, String msg, T data) {
         this.code = code;
         this.msg = msg;
         this.data = data;
