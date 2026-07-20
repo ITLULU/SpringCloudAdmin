@@ -1,37 +1,40 @@
 <template>
   <div class="login-page">
-    <div class="login-header">
-      <h1>酒店商城</h1>
-      <p>欢迎登录</p>
-    </div>
-    <van-form @submit="handleLogin" class="login-form">
-      <van-cell-group inset>
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon">
+          <van-icon name="hotel-o" size="40" color="#667eea" />
+        </div>
+        <h1>酒店商城</h1>
+        <p>欢迎登录</p>
+      </div>
+      <van-form @submit="handleLogin" class="login-form">
         <van-field
           v-model="form.username"
           name="username"
-          label="用户名"
           placeholder="请输入用户名"
+          left-icon="user-o"
           :rules="[{ required: true, message: '请输入用户名' }]"
         />
         <van-field
           v-model="form.password"
           type="password"
           name="password"
-          label="密码"
           placeholder="请输入密码"
+          left-icon="lock"
           :rules="[{ required: true, message: '请输入密码' }]"
         />
-      </van-cell-group>
-      <div class="login-actions">
-        <van-button round block type="primary" native-type="submit" :loading="loading">
-          登 录
-        </van-button>
-        <div class="login-footer">
-          还没有账号？
-          <span class="link" @click="router.push('/login?mode=register')">去注册</span>
+        <div class="login-actions">
+          <van-button round block type="primary" native-type="submit" :loading="loading" color="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+            登 录
+          </van-button>
+          <div class="login-footer">
+            还没有账号？
+            <span class="link" @click="router.push('/login?mode=register')">去注册</span>
+          </div>
         </div>
-      </div>
-    </van-form>
+      </van-form>
+    </div>
   </div>
 </template>
 
@@ -76,49 +79,84 @@ async function handleLogin() {
 
 <style scoped>
 .login-page {
+  width: 100%;
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 0 20px;
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
 .login-header {
   text-align: center;
-  color: #fff;
-  margin-bottom: 40px;
+  padding: 32px 24px 20px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+}
+
+.logo-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.logo-icon :deep(.van-icon) {
+  color: #fff !important;
 }
 
 .login-header h1 {
-  font-size: 28px;
-  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px;
 }
 
 .login-header p {
-  font-size: 14px;
-  opacity: 0.8;
+  font-size: 13px;
+  color: #999;
+  margin: 0;
 }
 
 .login-form {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px 16px;
+  padding: 24px 20px 28px;
+}
+
+.login-form :deep(.van-field) {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 4px 12px;
 }
 
 .login-actions {
-  padding: 24px 16px 0;
+  margin-top: 8px;
 }
 
 .login-footer {
   text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
+  margin-top: 18px;
+  font-size: 13px;
   color: #999;
 }
 
 .link {
-  color: #1989fa;
+  color: #667eea;
   cursor: pointer;
+  font-weight: 500;
 }
 </style>

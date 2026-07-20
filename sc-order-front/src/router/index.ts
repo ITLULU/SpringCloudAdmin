@@ -72,15 +72,22 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
+// 路由守卫 - 所有页面均需登录（登录页除外）
 router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: any) => {
   document.title = (to.meta.title as string) || '酒店商城'
-  if (to.meta.requireAuth) {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      next({ path: '/login', query: { redirect: to.fullPath } })
-      return
+  const token = localStorage.getItem('token')
+  if (to.path === '/login') {
+    // 已登录用户访问登录页，直接跳转首页
+    if (token) {
+      next('/hotel/list')
+    } else {
+      next()
     }
+    return
+  }
+  if (!token) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
   }
   next()
 })
