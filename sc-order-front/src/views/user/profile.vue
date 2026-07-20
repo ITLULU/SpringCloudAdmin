@@ -1,48 +1,60 @@
 <template>
   <div class="profile-page">
-    <van-nav-bar title="个人中心" fixed placeholder />
-
-    <!-- 用户头部 -->
-    <div class="user-header" v-if="isLoggedIn">
-      <van-icon name="manager-o" size="48" color="#fff" />
-      <div class="user-name">{{ username }}</div>
+    <div class="page-header">
+      <h1 class="page-title">个人中心</h1>
     </div>
-    <div class="user-header" v-else @click="router.push('/login')">
-      <van-icon name="manager-o" size="48" color="#fff" />
-      <div class="user-name">点击登录</div>
+
+    <!-- 用户卡片 -->
+    <div class="user-card" @click="!isLoggedIn && router.push('/login')">
+      <div class="user-avatar">
+        <van-icon name="manager-o" size="28" />
+      </div>
+      <div class="user-info">
+        <h3 class="user-name">{{ isLoggedIn ? username : '点击登录' }}</h3>
+        <p class="user-desc">{{ isLoggedIn ? '欢迎回来' : '登录后可享受完整服务' }}</p>
+      </div>
     </div>
 
     <!-- 功能菜单 -->
-    <van-cell-group inset class="menu-group">
-      <van-cell icon="orders-o" title="我的行程" is-link @click="goPage('/trip/list')" />
-      <van-cell icon="bag-o" title="我的订单" is-link @click="goPage('/order/list')" />
-      <van-cell icon="hotel-o" title="酒店列表" is-link @click="router.push('/hotel/list')" />
-    </van-cell-group>
+    <div class="menu-card">
+      <div class="menu-item" @click="goPage('/trip/list')">
+        <div class="menu-icon trip">
+          <van-icon name="orders-o" size="20" />
+        </div>
+        <span class="menu-text">我的行程</span>
+        <van-icon name="arrow" size="14" class="menu-arrow" />
+      </div>
+      <div class="menu-item" @click="goPage('/order/list')">
+        <div class="menu-icon order">
+          <van-icon name="bag-o" size="20" />
+        </div>
+        <span class="menu-text">我的订单</span>
+        <van-icon name="arrow" size="14" class="menu-arrow" />
+      </div>
+      <div class="menu-item" @click="router.push('/hotel/list')">
+        <div class="menu-icon hotel">
+          <van-icon name="hotel-o" size="20" />
+        </div>
+        <span class="menu-text">酒店列表</span>
+        <van-icon name="arrow" size="14" class="menu-arrow" />
+      </div>
+    </div>
 
     <!-- 退出登录 -->
     <div class="logout-section" v-if="isLoggedIn">
-      <van-button type="danger" plain block round @click="handleLogout">
+      <van-button plain type="danger" round block @click="handleLogout" class="logout-btn">
         退出登录
       </van-button>
     </div>
-
-    <!-- 底部TabBar -->
-    <van-tabbar v-model="activeTab" route fixed placeholder>
-      <van-tabbar-item icon="hotel-o" to="/hotel/list">酒店</van-tabbar-item>
-      <van-tabbar-item icon="orders-o" to="/trip/list">行程</van-tabbar-item>
-      <van-tabbar-item icon="bag-o" to="/order/list">订单</van-tabbar-item>
-      <van-tabbar-item icon="user-o" to="/user/profile">我的</van-tabbar-item>
-    </van-tabbar>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 
 const router = useRouter()
-const activeTab = ref(3)
 
 const isLoggedIn = computed(() => !!localStorage.getItem('token'))
 const username = computed(() => localStorage.getItem('username') || '')
@@ -61,6 +73,7 @@ async function handleLogout() {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
     showToast('已退出')
+    router.replace('/login')
   } catch {
     // cancelled
   }
@@ -68,26 +81,124 @@ async function handleLogout() {
 </script>
 
 <style scoped>
-.user-header {
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.user-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.user-card:hover {
+  transform: translateY(-2px);
+}
+
+.user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .user-name {
   font-size: 18px;
+  font-weight: 600;
   color: #fff;
-  font-weight: 500;
+  margin: 0 0 2px;
 }
 
-.menu-group {
-  margin-top: 12px;
+.user-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.menu-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:hover {
+  background: #f8fafc;
+}
+
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.menu-icon.trip {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+}
+
+.menu-icon.order {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+.menu-icon.hotel {
+  background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.menu-arrow {
+  color: var(--text-muted);
 }
 
 .logout-section {
-  padding: 32px 16px;
+  padding: 0;
+}
+
+.logout-btn {
+  height: 44px;
+  font-weight: 500;
 }
 </style>

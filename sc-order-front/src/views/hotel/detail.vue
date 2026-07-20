@@ -1,62 +1,52 @@
 <template>
   <div class="hotel-detail-page">
-    <van-nav-bar title="酒店详情" left-arrow @click-left="router.back()" fixed placeholder />
-
     <van-loading v-if="pageLoading" class="page-loading" />
 
     <template v-else-if="hotel">
-      <!-- 酒店头部信息 -->
-      <div class="hotel-header">
-        <van-image
-          :src="hotel.logo"
-          width="100%"
-          height="200"
-          fit="cover"
-        >
-          <template #error>
-            <div class="header-placeholder">
-              <van-icon name="hotel-o" size="48" color="#fff" />
-              <span>{{ hotel.name }}</span>
-            </div>
-          </template>
-        </van-image>
+      <!-- 面包屑导航 -->
+      <div class="breadcrumb">
+        <span class="crumb-link" @click="router.push('/hotel/list')">酒店列表</span>
+        <van-icon name="arrow" size="12" />
+        <span class="crumb-current">{{ hotel.name }}</span>
       </div>
 
-      <div class="hotel-info-card">
-        <h2 class="hotel-name">{{ hotel.name }}</h2>
-        <van-tag type="primary" plain class="brand-tag">{{ hotel.brand }}</van-tag>
-        <van-cell-group inset>
-          <van-cell icon="location-o" title="地址" :value="hotel.address" />
-          <van-cell icon="phone-o" title="电话" :value="hotel.phone" is-link :url="`tel:${hotel.phone}`" />
-        </van-cell-group>
-        <div class="hotel-desc" v-if="hotel.description">
-          <h4>酒店简介</h4>
-          <p>{{ hotel.description }}</p>
+      <!-- 酒店主卡片 -->
+      <div class="hotel-hero">
+        <div class="hero-image">
+          <van-image :src="hotel.logo" width="100%" height="280" fit="cover" radius="12">
+            <template #error>
+              <div class="hero-placeholder">
+                <van-icon name="hotel-o" size="56" />
+                <span>{{ hotel.name }}</span>
+              </div>
+            </template>
+          </van-image>
         </div>
-      </div>
-
-      <!-- 操作按钮 -->
-      <div class="action-section">
-        <van-button
-          type="primary"
-          block
-          round
-          icon="calendar-o"
-          @click="goCreateTrip"
-        >
-          立即入住（0元）
-        </van-button>
-        <van-button
-          plain
-          type="primary"
-          block
-          round
-          icon="shopping-cart-o"
-          class="mt-12"
-          @click="goProducts"
-        >
-          浏览商品
-        </van-button>
+        <div class="hero-info">
+          <div class="hero-top">
+            <h1 class="hotel-name">{{ hotel.name }}</h1>
+            <van-tag round type="primary">{{ hotel.brand }}</van-tag>
+          </div>
+          <p class="hotel-desc" v-if="hotel.description">{{ hotel.description }}</p>
+          <div class="info-list">
+            <div class="info-item">
+              <van-icon name="location-o" />
+              <span>{{ hotel.address }}</span>
+            </div>
+            <div class="info-item">
+              <van-icon name="phone-o" />
+              <a :href="`tel:${hotel.phone}`" class="phone-link">{{ hotel.phone }}</a>
+            </div>
+          </div>
+          <div class="hero-actions">
+            <van-button type="primary" round icon="calendar-o" @click="goCreateTrip" class="action-btn primary-btn">
+              立即入住（0元）
+            </van-button>
+            <van-button plain round icon="shopping-cart-o" @click="goProducts" class="action-btn">
+              浏览商品
+            </van-button>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -84,11 +74,6 @@ onMounted(async () => {
 })
 
 function goCreateTrip() {
-  const token = localStorage.getItem('token')
-  if (!token) {
-    router.push({ path: '/login', query: { redirect: route.fullPath } })
-    return
-  }
   router.push({ path: '/trip/create', query: { hotelId: route.params.id as string } })
 }
 
@@ -101,58 +86,132 @@ function goProducts() {
 .page-loading {
   display: flex;
   justify-content: center;
-  padding-top: 100px;
+  padding-top: 80px;
 }
 
-.header-placeholder {
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.crumb-link {
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.crumb-link:hover {
+  text-decoration: underline;
+}
+
+.hotel-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.hero-placeholder {
   width: 100%;
-  height: 200px;
+  height: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  font-size: 18px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+  color: var(--primary);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
   gap: 8px;
 }
 
-.hotel-info-card {
-  padding: 16px;
+.hero-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.hotel-name {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 8px;
-}
-
-.brand-tag {
+.hero-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
-.hotel-desc {
-  padding: 12px 16px;
-}
-
-.hotel-desc h4 {
-  font-size: 14px;
-  color: #333;
-  margin: 0 0 8px;
-}
-
-.hotel-desc p {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.6;
+.hotel-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.3px;
 }
 
-.action-section {
-  padding: 16px;
+.hotel-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 20px;
 }
 
-.mt-12 {
-  margin-top: 12px;
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.info-item :deep(.van-icon) {
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.phone-link {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.phone-link:hover {
+  text-decoration: underline;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 42px;
+  font-weight: 500;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border: none;
+}
+
+@media (max-width: 640px) {
+  .hotel-hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }
 </style>

@@ -1,30 +1,45 @@
 <template>
   <div class="order-detail-page">
-    <van-nav-bar title="订单详情" left-arrow @click-left="router.back()" fixed placeholder />
-
     <van-loading v-if="pageLoading" class="page-loading" />
 
     <template v-else-if="order">
-      <!-- 订单状态 -->
-      <div class="status-card" :class="{ cancelled: order.status === 0 }">
-        <van-icon :name="order.status === 1 ? 'passed' : 'close'" size="36" />
-        <span>{{ order.status === 1 ? '已完成' : '已取消' }}</span>
+      <!-- 面包屑 -->
+      <div class="breadcrumb">
+        <span class="crumb-link" @click="router.back()">返回</span>
+        <van-icon name="arrow" size="12" />
+        <span class="crumb-current">订单详情</span>
       </div>
 
-      <!-- 酒店信息 -->
-      <van-cell-group inset class="info-group">
-        <van-cell title="酒店" :value="hotel?.name" />
-        <van-cell title="订单号" :value="order.id" />
-        <van-cell title="下单时间" :value="formatTime(order.createdTime)" />
-      </van-cell-group>
+      <!-- 状态卡片 -->
+      <div class="status-section" :class="{ cancelled: order.status === 0 }">
+        <div class="status-icon">
+          <van-icon :name="order.status === 1 ? 'passed' : 'close'" size="32" />
+        </div>
+        <div class="status-text">
+          <h2>{{ order.status === 1 ? '订单已完成' : '订单已取消' }}</h2>
+          <p>订单号：{{ order.id }}</p>
+        </div>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="info-card">
+        <div class="info-row">
+          <span class="label">酒店</span>
+          <span class="value">{{ hotel?.name }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">下单时间</span>
+          <span class="value">{{ formatTime(order.createdTime) }}</span>
+        </div>
+      </div>
 
       <!-- 商品明细 -->
-      <div class="items-section">
-        <h3>商品明细</h3>
+      <div class="items-card">
+        <h3 class="section-title">商品明细</h3>
         <div v-for="item in items" :key="item.id" class="item-row">
-          <div class="item-info">
+          <div class="item-left">
             <span class="item-name">{{ item.productName }}</span>
-            <van-tag plain>{{ item.specName }}</van-tag>
+            <van-tag plain round>{{ item.specName }}</van-tag>
           </div>
           <div class="item-right">
             <span class="item-qty">x{{ item.quantity }}</span>
@@ -35,7 +50,7 @@
 
       <!-- 操作按钮 -->
       <div class="action-section" v-if="order.status === 1">
-        <van-button type="danger" plain block round @click="handleCancel">
+        <van-button type="danger" plain round block @click="handleCancel" class="cancel-btn">
           取消订单（归还库存）
         </van-button>
       </div>
@@ -98,51 +113,116 @@ async function handleCancel() {
   padding-top: 80px;
 }
 
-.status-card {
+.breadcrumb {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.crumb-link {
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.crumb-link:hover {
+  text-decoration: underline;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   padding: 24px;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  background: linear-gradient(135deg, #10b981, #34d399);
+  border-radius: var(--radius);
   color: #fff;
-  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.status-section.cancelled {
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+}
+
+.status-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-text h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.status-text p {
+  font-size: 12px;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.info-card,
+.items-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.info-row .value {
+  font-size: 13px;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
-.status-card.cancelled {
-  background: linear-gradient(135deg, #9e9e9e, #bdbdbd);
-}
-
-.info-group {
-  margin-top: 12px;
-}
-
-.items-section {
-  margin: 12px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 12px;
-}
-
-.items-section h3 {
+.section-title {
   font-size: 15px;
-  margin: 0 0 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .item-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .item-row:last-child {
   border-bottom: none;
 }
 
-.item-info {
+.item-left {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -150,27 +230,33 @@ async function handleCancel() {
 
 .item-name {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .item-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .item-qty {
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .item-price {
   font-size: 14px;
-  color: #e53935;
-  font-weight: 500;
+  color: #ef4444;
+  font-weight: 600;
 }
 
 .action-section {
-  padding: 24px 16px;
+  margin-top: 24px;
+}
+
+.cancel-btn {
+  height: 44px;
+  font-weight: 500;
 }
 </style>

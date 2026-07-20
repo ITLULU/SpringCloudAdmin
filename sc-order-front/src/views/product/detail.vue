@@ -1,74 +1,82 @@
 <template>
   <div class="product-detail-page">
-    <van-nav-bar title="商品详情" left-arrow @click-left="router.back()" fixed placeholder />
-
     <van-loading v-if="pageLoading" class="page-loading" />
 
     <template v-else-if="product">
-      <!-- 商品图片 -->
-      <div class="product-image">
-        <van-image :src="product.coverImage" width="100%" height="240" fit="cover">
-          <template #error>
-            <div class="img-placeholder">
-              <van-icon name="photo-o" size="48" />
-            </div>
-          </template>
-        </van-image>
+      <!-- 面包屑 -->
+      <div class="breadcrumb">
+        <span class="crumb-link" @click="router.push('/hotel/list')">酒店</span>
+        <van-icon name="arrow" size="12" />
+        <span class="crumb-link" @click="router.push({ path: '/product/list', query: { hotelId } })">商品</span>
+        <van-icon name="arrow" size="12" />
+        <span class="crumb-current">{{ product.name }}</span>
       </div>
 
-      <!-- 商品基本信息 -->
-      <div class="product-info-card">
-        <h2 class="product-name">{{ product.name }}</h2>
-        <div class="product-price-row">
-          <span class="price">免费</span>
-          <van-tag type="success">0元</van-tag>
+      <div class="detail-layout">
+        <!-- 左侧：商品图片 -->
+        <div class="product-image">
+          <van-image :src="product.coverImage" width="100%" height="320" fit="cover" radius="12">
+            <template #error>
+              <div class="img-placeholder">
+                <van-icon name="photo-o" size="48" />
+              </div>
+            </template>
+          </van-image>
         </div>
-        <p class="product-desc" v-if="product.description">{{ product.description }}</p>
-      </div>
 
-      <!-- 规格选择 -->
-      <div class="spec-section">
-        <h3>选择规格</h3>
-        <div class="spec-list">
-          <div
-            v-for="spec in specs"
-            :key="spec.id"
-            class="spec-item"
-            :class="{ selected: selectedSpec?.id === spec.id, disabled: spec.stock <= 0 }"
-            @click="selectSpec(spec)"
-          >
-            <div class="spec-name">{{ spec.specName }}</div>
-            <div class="spec-value">{{ spec.specValue }}</div>
-            <div class="spec-stock">
-              <template v-if="spec.stock > 0">
-                库存: {{ spec.stock }}
-              </template>
-              <template v-else>
-                <van-tag type="danger">已售罄</van-tag>
-              </template>
+        <!-- 右侧：商品信息 -->
+        <div class="product-info">
+          <h1 class="product-name">{{ product.name }}</h1>
+          <div class="price-row">
+            <span class="price">免费</span>
+            <van-tag round type="success">0元购</van-tag>
+          </div>
+          <p class="product-desc" v-if="product.description">{{ product.description }}</p>
+
+          <!-- 规格选择 -->
+          <div class="spec-section">
+            <h3 class="section-title">选择规格</h3>
+            <div class="spec-list">
+              <div
+                v-for="spec in specs"
+                :key="spec.id"
+                class="spec-card"
+                :class="{ selected: selectedSpec?.id === spec.id, disabled: spec.stock <= 0 }"
+                @click="selectSpec(spec)"
+              >
+                <div class="spec-name">{{ spec.specName }}</div>
+                <div class="spec-value">{{ spec.specValue }}</div>
+                <div class="spec-stock">
+                  <template v-if="spec.stock > 0">
+                    剩余 <strong>{{ spec.stock }}</strong> 件
+                  </template>
+                  <van-tag v-else type="danger" round>已售罄</van-tag>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- 数量选择 -->
+          <div class="quantity-row" v-if="selectedSpec">
+            <span>购买数量</span>
+            <van-stepper v-model="quantity" :max="selectedSpec.stock" min="1" theme="round" />
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="action-area">
+            <van-button
+              type="primary"
+              round
+              block
+              :disabled="!canOrder"
+              :loading="orderLoading"
+              @click="handleOrder"
+              class="order-btn"
+            >
+              {{ !checkedIn ? '请先入住后再下单' : '立即下单（0元）' }}
+            </van-button>
+          </div>
         </div>
-      </div>
-
-      <!-- 数量选择 -->
-      <div class="quantity-section" v-if="selectedSpec">
-        <span>购买数量</span>
-        <van-stepper v-model="quantity" :max="selectedSpec.stock" min="1" />
-      </div>
-
-      <!-- 底部操作栏 -->
-      <div class="bottom-bar">
-        <van-button
-          type="primary"
-          round
-          block
-          :disabled="!canOrder"
-          :loading="orderLoading"
-          @click="handleOrder"
-        >
-          {{ !isLoggedIn ? '请先登录' : !checkedIn ? '请先入住后下单' : '立即下单（0元）' }}
-        </van-button>
       </div>
     </template>
   </div>
@@ -94,8 +102,7 @@ const quantity = ref(1)
 const pageLoading = ref(true)
 const orderLoading = ref(false)
 
-const isLoggedIn = computed(() => !!localStorage.getItem('token'))
-const canOrder = computed(() => isLoggedIn.value && checkedIn && selectedSpec.value && selectedSpec.value.stock > 0)
+const canOrder = computed(() => checkedIn && selectedSpec.value && selectedSpec.value.stock > 0)
 
 onMounted(async () => {
   try {
@@ -145,118 +152,167 @@ async function handleOrder() {
   padding-top: 80px;
 }
 
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.crumb-link {
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.crumb-link:hover {
+  text-decoration: underline;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
 .img-placeholder {
   width: 100%;
-  height: 240px;
+  height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  color: #ccc;
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+  color: var(--primary-light);
+  border-radius: 12px;
 }
 
-.product-info-card {
-  padding: 16px;
-  background: #fff;
+.product-info {
+  display: flex;
+  flex-direction: column;
 }
 
 .product-name {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px;
 }
 
-.product-price-row {
+.price-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .price {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #e53935;
+  color: #ef4444;
 }
 
 .product-desc {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.6;
-  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
-.spec-section {
-  margin-top: 8px;
-  padding: 16px;
-  background: #fff;
-}
-
-.spec-section h3 {
-  font-size: 15px;
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0 0 12px;
 }
 
 .spec-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
-.spec-item {
-  flex: 0 0 calc(50% - 5px);
+.spec-card {
   padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.spec-item.selected {
-  border-color: #1989fa;
-  background: #ecf5ff;
+.spec-card:hover:not(.disabled) {
+  border-color: var(--primary-light);
 }
 
-.spec-item.disabled {
+.spec-card.selected {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.04);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+}
+
+.spec-card.disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .spec-name {
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
 }
 
 .spec-value {
   font-size: 12px;
-  color: #666;
-  margin-top: 2px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
 }
 
 .spec-stock {
   font-size: 12px;
-  color: #999;
-  margin-top: 4px;
+  color: var(--text-muted);
 }
 
-.quantity-section {
+.spec-stock strong {
+  color: var(--primary);
+}
+
+.quantity-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  margin-top: 8px;
-  background: #fff;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-.bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 12px 16px;
-  background: #fff;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+.action-area {
+  margin-top: auto;
+}
+
+.order-btn {
+  height: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border: none;
+}
+
+@media (max-width: 640px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }
 </style>

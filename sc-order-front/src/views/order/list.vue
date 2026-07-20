@@ -1,47 +1,46 @@
 <template>
   <div class="order-list-page">
-    <van-nav-bar title="我的订单" fixed placeholder>
-      <template #left>
-        <van-icon name="arrow-left" size="20" @click="router.push('/hotel/list')" />
-      </template>
-    </van-nav-bar>
+    <div class="page-header">
+      <h1 class="page-title">我的订单</h1>
+      <p class="page-subtitle">查看所有购买记录</p>
+    </div>
 
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <van-empty v-if="!loading && !orders.length" description="暂无订单" />
+    <div v-if="!loading && !orders.length" class="empty-state">
+      <van-icon name="bag-o" size="48" color="#d1d5db" />
+      <p>暂无订单记录</p>
+    </div>
 
+    <div v-else class="order-grid">
       <div
         v-for="item in orders"
         :key="item.order.id"
         class="order-card"
         @click="router.push(`/order/${item.order.id}`)"
       >
-        <div class="order-header">
-          <span class="order-hotel">{{ item.hotelName }}</span>
-          <van-tag :type="item.order.status === 1 ? 'success' : 'default'">
+        <div class="card-header">
+          <div class="hotel-tag">
+            <van-icon name="hotel-o" size="14" />
+            <span>{{ item.hotelName }}</span>
+          </div>
+          <van-tag round :type="item.order.status === 1 ? 'success' : 'default'">
             {{ item.order.status === 1 ? '已完成' : '已取消' }}
           </van-tag>
         </div>
+
         <div class="order-items">
-          <div v-for="orderItem in item.items" :key="orderItem.id" class="order-item-row">
-            <span>{{ orderItem.productName }}</span>
-            <span class="spec-label">{{ orderItem.specName }}</span>
-            <span>x{{ orderItem.quantity }}</span>
+          <div v-for="orderItem in item.items" :key="orderItem.id" class="item-row">
+            <span class="item-name">{{ orderItem.productName }}</span>
+            <van-tag plain size="medium">{{ orderItem.specName }}</van-tag>
+            <span class="item-qty">x{{ orderItem.quantity }}</span>
           </div>
         </div>
-        <div class="order-footer">
+
+        <div class="card-footer">
           <span class="order-time">{{ formatTime(item.order.createdTime) }}</span>
-          <van-icon name="arrow" />
+          <span class="view-detail">查看详情 →</span>
         </div>
       </div>
-    </van-pull-refresh>
-
-    <!-- 底部TabBar -->
-    <van-tabbar v-model="activeTab" route fixed placeholder>
-      <van-tabbar-item icon="hotel-o" to="/hotel/list">酒店</van-tabbar-item>
-      <van-tabbar-item icon="orders-o" to="/trip/list">行程</van-tabbar-item>
-      <van-tabbar-item icon="bag-o" to="/order/list">订单</van-tabbar-item>
-      <van-tabbar-item icon="user-o" to="/user/profile">我的</van-tabbar-item>
-    </van-tabbar>
+    </div>
   </div>
 </template>
 
@@ -52,10 +51,8 @@ import request from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
-const activeTab = ref(2)
 const orders = ref<any[]>([])
 const loading = ref(false)
-const refreshing = ref(false)
 
 onMounted(() => fetchOrders())
 
@@ -71,12 +68,7 @@ async function fetchOrders() {
     // handled
   } finally {
     loading.value = false
-    refreshing.value = false
   }
-}
-
-function onRefresh() {
-  fetchOrders()
 }
 
 function formatTime(time: string) {
@@ -86,59 +78,114 @@ function formatTime(time: string) {
 </script>
 
 <style scoped>
-.order-card {
-  margin: 8px 12px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+.page-header {
+  margin-bottom: 24px;
 }
 
-.order-header {
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.order-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.order-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.order-card:hover {
+  box-shadow: var(--shadow);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
-.order-hotel {
-  font-size: 15px;
+.hotel-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+}
+
+.hotel-tag :deep(.van-icon) {
+  color: var(--primary);
 }
 
 .order-items {
-  border-top: 1px solid #f5f5f5;
-  padding-top: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
 }
 
-.order-item-row {
+.item-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #666;
   padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.spec-label {
-  background: #f5f5f5;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+.item-name {
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
-.order-footer {
+.item-qty {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #f5f5f5;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .order-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
+}
+
+.view-detail {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 500;
 }
 </style>
