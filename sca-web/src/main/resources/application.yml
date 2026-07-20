@@ -43,6 +43,10 @@ security:
     - /api/auth/login
     - /api/auth/register
     - /api/auth/refresh
+    - /api/hotel/list
+    - /api/hotel/*
+    - /api/hotel/product/list
+    - /api/hotel/product/*
     - /api/health
     - /actuator/**
     - /swagger-ui/**

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.opensabre.admin.dao.mapper.HotelOrderMapper">
+
+    <!-- 查询用户某行程下的订单列表 -->
+    <select id="selectByTripId" resultType="com.opensabre.admin.dao.entity.po.HotelOrder">
+        SELECT * FROM hotel_order
+        WHERE trip_id = #{tripId}
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 查询用户所有订单 -->
+    <select id="selectByUserId" resultType="com.opensabre.admin.dao.entity.po.HotelOrder">
+        SELECT * FROM hotel_order
+        WHERE user_id = #{userId}
+        ORDER BY created_time DESC
+    </select>
+
+</mapper>
