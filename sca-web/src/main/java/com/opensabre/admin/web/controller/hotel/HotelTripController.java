@@ -8,15 +8,16 @@ import com.opensabre.admin.dao.entity.po.SysUser;
 import com.opensabre.admin.dao.mapper.HotelMapper;
 import com.opensabre.admin.dao.mapper.HotelTripMapper;
 import com.opensabre.admin.dao.mapper.SysUserMapper;
+import com.opensabre.admin.web.controller.hotel.request.CreateTripRequest;
+import com.opensabre.admin.web.controller.hotel.response.ActiveTripResponse;
+import com.opensabre.admin.web.controller.hotel.response.TripWithHotelResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 酒店行程Controller - 创建行程、查看行程、取消行程
@@ -40,38 +41,27 @@ public class HotelTripController {
      */
     @Operation(summary = "创建行程", description = "0元入住，校验时间段不重叠")
     @PostMapping
-    public Result<Object> create(@RequestBody Map<String, String> request) {
+    public Result<HotelTrip> create(@Valid @RequestBody CreateTripRequest request) {
         String username = UserContextHolder.getInstance().getUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");
         }
 
-        String hotelId = request.get("hotelId");
-        String checkInStr = request.get("checkInDate");
-        String checkOutStr = request.get("checkOutDate");
-
-        if (hotelId == null || checkInStr == null || checkOutStr == null) {
-            return Result.fail("参数不完整");
-        }
-
-        LocalDate checkInDate = LocalDate.parse(checkInStr);
-        LocalDate checkOutDate = LocalDate.parse(checkOutStr);
-
         // 校验日期
-        if (checkOutDate.isBefore(checkInDate) || checkOutDate.isEqual(checkInDate)) {
+        if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
             return Result.fail("离店日期必须晚于入住日期");
         }
 
         // 校验酒店是否存在
-        Hotel hotel = hotelMapper.selectById(hotelId);
+        Hotel hotel = hotelMapper.selectById(request.getHotelId());
         if (hotel == null || hotel.getStatus() != 1) {
             return Result.fail("酒店不存在或已停业");
         }
 
         // 校验时间段是否重叠
         List<HotelTrip> overlapping = hotelTripMapper.selectOverlappingTrips(
-                user.getId(), hotelId, checkInDate, checkOutDate);
+                user.getId(), request.getHotelId(), request.getCheckInDate(), request.getCheckOutDate());
         if (!overlapping.isEmpty()) {
             return Result.fail("该时间段已有入住行程，不可重叠");
         }
@@ -79,9 +69,9 @@ public class HotelTripController {
         // 创建行程
         HotelTrip trip = new HotelTrip();
         trip.setUserId(user.getId());
-        trip.setHotelId(hotelId);
-        trip.setCheckInDate(checkInDate);
-        trip.setCheckOutDate(checkOutDate);
+        trip.setHotelId(request.getHotelId());
+        trip.setCheckInDate(request.getCheckInDate());
+        trip.setCheckOutDate(request.getCheckOutDate());
         trip.setStatus(1);
         hotelTripMapper.insert(trip);
 
@@ -101,14 +91,12 @@ public class HotelTripController {
         }
 
         List<HotelTrip> trips = hotelTripMapper.selectByUserId(user.getId());
-        // 附加酒店信息
-        List<Map<String, Object>> result = trips.stream().map(trip -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("trip", trip);
-            Hotel hotel = hotelMapper.selectById(trip.getHotelId());
-            map.put("hotel", hotel);
-            return map;
-        }).toList();
+        List<TripWithHotelResponse> result = trips.stream()
+                .map(trip -> {
+                    Hotel hotel = hotelMapper.selectById(trip.getHotelId());
+                    return new TripWithHotelResponse(trip, hotel);
+                })
+                .toList();
 
         return Result.success(result);
     }
@@ -151,9 +139,6 @@ public class HotelTripController {
         }
 
         HotelTrip activeTrip = hotelTripMapper.selectActiveTrip(user.getId(), hotelId);
-        Map<String, Object> data = new HashMap<>();
-        data.put("checkedIn", activeTrip != null);
-        data.put("trip", activeTrip);
-        return Result.success(data);
+        return Result.success(new ActiveTripResponse(activeTrip != null, activeTrip));
     }
 }

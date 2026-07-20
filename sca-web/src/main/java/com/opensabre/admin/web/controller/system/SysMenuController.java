@@ -1,13 +1,15 @@
 package com.opensabre.admin.web.controller.system;
 
 import com.opensabre.admin.common.entity.Result;
+import com.opensabre.admin.web.controller.system.request.AddMenuRequest;
+import com.opensabre.admin.web.controller.system.request.EditMenuRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 菜单管理 Controller
@@ -22,7 +24,7 @@ public class SysMenuController {
     @PreAuthorize("hasAuthority('system:menu:list')")
     public Result<Object> list() {
         // TODO: 接入 Service 层查询菜单树
-        return Result.success(java.util.List.of());
+        return Result.success(List.of());
     }
 
     @Operation(summary = "查询菜单详情")
@@ -36,7 +38,7 @@ public class SysMenuController {
     @Operation(summary = "新增菜单")
     @PostMapping
     @PreAuthorize("hasAuthority('system:menu:add')")
-    public Result<Object> add(@RequestBody Map<String, Object> body) {
+    public Result<Object> add(@Valid @RequestBody AddMenuRequest request) {
         // TODO: 接入 Service 层新增
         return Result.success();
     }
@@ -44,7 +46,7 @@ public class SysMenuController {
     @Operation(summary = "修改菜单")
     @PutMapping
     @PreAuthorize("hasAuthority('system:menu:edit')")
-    public Result<Object> edit(@RequestBody Map<String, Object> body) {
+    public Result<Object> edit(@Valid @RequestBody EditMenuRequest request) {
         // TODO: 接入 Service 层修改
         return Result.success();
     }

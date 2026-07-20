@@ -1,13 +1,16 @@
 package com.opensabre.admin.web.controller.system;
 
 import com.opensabre.admin.common.entity.Result;
+import com.opensabre.admin.web.controller.system.request.AddRoleRequest;
+import com.opensabre.admin.web.controller.system.request.EditRoleRequest;
+import com.opensabre.admin.web.controller.system.response.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 角色管理 Controller
@@ -26,10 +29,7 @@ public class SysRoleController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         // TODO: 接入 Service 层查询
-        Map<String, Object> data = new HashMap<>();
-        data.put("total", 0);
-        data.put("rows", java.util.List.of());
-        return Result.success(data);
+        return Result.success(new PageResult<>(0L, List.of()));
     }
 
     @Operation(summary = "查询角色详情")
@@ -43,7 +43,7 @@ public class SysRoleController {
     @Operation(summary = "新增角色")
     @PostMapping
     @PreAuthorize("hasAuthority('system:role:add')")
-    public Result<Object> add(@RequestBody Map<String, Object> body) {
+    public Result<Object> add(@Valid @RequestBody AddRoleRequest request) {
         // TODO: 接入 Service 层新增
         return Result.success();
     }
@@ -51,7 +51,7 @@ public class SysRoleController {
     @Operation(summary = "修改角色")
     @PutMapping
     @PreAuthorize("hasAuthority('system:role:edit')")
-    public Result<Object> edit(@RequestBody Map<String, Object> body) {
+    public Result<Object> edit(@Valid @RequestBody EditRoleRequest request) {
         // TODO: 接入 Service 层修改
         return Result.success();
     }

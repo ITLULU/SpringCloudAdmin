@@ -4,17 +4,19 @@ import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.util.UserContextHolder;
 import com.opensabre.admin.dao.entity.po.*;
 import com.opensabre.admin.dao.mapper.*;
+import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
+import com.opensabre.admin.web.controller.hotel.response.OrderDetailResponse;
+import com.opensabre.admin.web.controller.hotel.response.OrderListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 酒店订单Controller - 下单、查看订单、取消订单
@@ -52,68 +54,48 @@ public class HotelOrderController {
     @Operation(summary = "创建订单", description = "下单购买商品，需要入住状态，扣减规格库存")
     @PostMapping
     @Transactional(rollbackFor = Exception.class)
-    public Result<Object> create(@RequestBody Map<String, Object> request) {
+    public Result<Object> create(@Valid @RequestBody CreateOrderRequest request) {
         String username = UserContextHolder.getInstance().getUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");
         }
 
-        String tripId = (String) request.get("tripId");
-        String hotelId = (String) request.get("hotelId");
-
-        if (tripId == null || hotelId == null) {
-            return Result.fail("参数不完整");
-        }
-
         // 校验行程有效性
-        HotelTrip trip = hotelTripMapper.selectById(tripId);
+        HotelTrip trip = hotelTripMapper.selectById(request.getTripId());
         if (trip == null || !trip.getUserId().equals(user.getId()) || trip.getStatus() != 1) {
             return Result.fail("行程无效");
         }
 
         // 校验当前是否在入住时间段内
-        HotelTrip activeTrip = hotelTripMapper.selectActiveTrip(user.getId(), hotelId);
+        HotelTrip activeTrip = hotelTripMapper.selectActiveTrip(user.getId(), request.getHotelId());
         if (activeTrip == null) {
             return Result.fail("当前不在入住时间段内，无法下单");
-        }
-
-        // 解析商品明细
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) request.get("items");
-        if (items == null || items.isEmpty()) {
-            return Result.fail("订单商品不能为空");
         }
 
         // 创建订单
         HotelOrder order = new HotelOrder();
         order.setUserId(user.getId());
-        order.setHotelId(hotelId);
-        order.setTripId(tripId);
+        order.setHotelId(request.getHotelId());
+        order.setTripId(request.getTripId());
         order.setStatus(1);
         hotelOrderMapper.insert(order);
 
         // 创建订单明细 + 扣减库存
-        for (Map<String, Object> item : items) {
-            String productId = (String) item.get("productId");
-            String specId = (String) item.get("specId");
-            int quantity = item.get("quantity") instanceof Integer
-                    ? (Integer) item.get("quantity")
-                    : Integer.parseInt(item.get("quantity").toString());
-
+        for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
             // 查询商品和规格
-            HotelProduct product = hotelProductMapper.selectById(productId);
+            HotelProduct product = hotelProductMapper.selectById(item.getProductId());
             if (product == null || product.getStatus() != 1) {
-                throw new RuntimeException("商品不存在或已下架: " + productId);
+                throw new RuntimeException("商品不存在或已下架: " + item.getProductId());
             }
 
-            HotelProductSpec spec = hotelProductSpecMapper.selectById(specId);
-            if (spec == null || !spec.getProductId().equals(productId)) {
-                throw new RuntimeException("规格不存在: " + specId);
+            HotelProductSpec spec = hotelProductSpecMapper.selectById(item.getSpecId());
+            if (spec == null || !spec.getProductId().equals(item.getProductId())) {
+                throw new RuntimeException("规格不存在: " + item.getSpecId());
             }
 
             // 扣减库存（乐观锁）
-            int affected = hotelProductSpecMapper.deductStock(specId, quantity);
+            int affected = hotelProductSpecMapper.deductStock(item.getSpecId(), item.getQuantity());
             if (affected == 0) {
                 throw new RuntimeException("库存不足: " + spec.getSpecName());
             }
@@ -121,16 +103,16 @@ public class HotelOrderController {
             // 创建订单明细
             HotelOrderItem orderItem = new HotelOrderItem();
             orderItem.setOrderId(order.getId());
-            orderItem.setProductId(productId);
-            orderItem.setSpecId(specId);
+            orderItem.setProductId(item.getProductId());
+            orderItem.setSpecId(item.getSpecId());
             orderItem.setProductName(product.getName());
             orderItem.setSpecName(spec.getSpecName());
-            orderItem.setQuantity(quantity);
+            orderItem.setQuantity(item.getQuantity());
             orderItem.setPrice(spec.getPrice() != null ? spec.getPrice() : BigDecimal.ZERO);
             hotelOrderItemMapper.insert(orderItem);
         }
 
-        log.info("订单创建成功: orderId={}, userId={}, hotelId={}", order.getId(), user.getId(), hotelId);
+        log.info("订单创建成功: orderId={}, userId={}, hotelId={}", order.getId(), user.getId(), request.getHotelId());
         return Result.success(order);
     }
 
@@ -153,14 +135,10 @@ public class HotelOrderController {
             orders = hotelOrderMapper.selectByUserId(user.getId());
         }
 
-        // 附加订单明细和酒店信息
-        List<Map<String, Object>> result = orders.stream().map(order -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("order", order);
-            map.put("items", hotelOrderItemMapper.selectByOrderId(order.getId()));
+        List<OrderListResponse> result = orders.stream().map(order -> {
+            List<HotelOrderItem> items = hotelOrderItemMapper.selectByOrderId(order.getId());
             Hotel hotel = hotelMapper.selectById(order.getHotelId());
-            map.put("hotelName", hotel != null ? hotel.getName() : "");
-            return map;
+            return new OrderListResponse(order, items, hotel != null ? hotel.getName() : "");
         }).toList();
 
         return Result.success(result);
@@ -183,12 +161,9 @@ public class HotelOrderController {
             return Result.fail("订单不存在");
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("order", order);
-        data.put("items", hotelOrderItemMapper.selectByOrderId(id));
+        List<HotelOrderItem> items = hotelOrderItemMapper.selectByOrderId(id);
         Hotel hotel = hotelMapper.selectById(order.getHotelId());
-        data.put("hotel", hotel);
-        return Result.success(data);
+        return Result.success(new OrderDetailResponse(order, items, hotel));
     }
 
     /**

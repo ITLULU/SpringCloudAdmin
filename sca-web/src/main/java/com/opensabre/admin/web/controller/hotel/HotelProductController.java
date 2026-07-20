@@ -5,14 +5,13 @@ import com.opensabre.admin.dao.entity.po.HotelProduct;
 import com.opensabre.admin.dao.entity.po.HotelProductSpec;
 import com.opensabre.admin.dao.mapper.HotelProductMapper;
 import com.opensabre.admin.dao.mapper.HotelProductSpecMapper;
+import com.opensabre.admin.web.controller.hotel.response.ProductDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 酒店商品Controller - 提供商品列表、详情（含规格）等接口
@@ -49,10 +48,6 @@ public class HotelProductController {
             return Result.fail("商品不存在或已下架");
         }
         List<HotelProductSpec> specs = hotelProductSpecMapper.selectByProductId(id);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("product", product);
-        data.put("specs", specs);
-        return Result.success(data);
+        return Result.success(new ProductDetailResponse(product, specs));
     }
 }

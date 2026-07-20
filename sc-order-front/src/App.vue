@@ -5,7 +5,7 @@
     <!-- 顶部导航栏 -->
     <header class="app-header">
       <div class="header-inner">
-        <div class="header-left" @click="router.push('/hotel/list')">
+        <div class="header-left" title="回到首页" @click="router.push('/hotel/list')">
           <van-icon name="hotel-o" size="22" />
           <span class="logo-text">酒店商城</span>
         </div>

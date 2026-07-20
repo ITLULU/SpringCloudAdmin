@@ -8,7 +8,11 @@ import com.opensabre.admin.dao.mapper.SysUserMapper;
 import com.opensabre.admin.dao.mapper.SysUserRoleMapper;
 import com.opensabre.admin.security.config.SecurityProperties;
 import com.opensabre.admin.security.request.LoginRequest;
+import com.opensabre.admin.security.request.RefreshTokenRequest;
 import com.opensabre.admin.security.request.RegisterRequest;
+import com.opensabre.admin.security.response.LoginResponse;
+import com.opensabre.admin.security.response.RefreshTokenResponse;
+import com.opensabre.admin.security.response.UserInfoResponse;
 import com.opensabre.admin.security.token.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,9 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 认证Controller - 提供登录、刷新Token、获取当前用户信息等接口
@@ -62,7 +64,7 @@ public class AuthController {
     /**
      * 用户注册
      * <p>
-     * 注册成功后自动分配“普通用户”角色，需重新登录获取Token。
+     * 注册成功后自动分配"普通用户"角色，需重新登录获取Token。
      * </p>
      */
     @Operation(summary = "用户注册", description = "注册新用户，默认分配普通用户角色")
@@ -117,26 +119,26 @@ public class AuthController {
             // 生成AccessToken
             String accessToken = jwtTokenProvider.createAccessToken(request.getUsername());
 
-            Map<String, Object> data = new HashMap<>();
-            data.put("username", request.getUsername());
+            LoginResponse response = new LoginResponse();
+            response.setUsername(request.getUsername());
 
             // 根据续期模式返回不同的Token
             if (securityProperties.getRenewal().getMode() == SecurityProperties.RenewalMode.REFRESH_TOKEN) {
                 // 双Token模式：返回 accessToken + refreshToken
                 String refreshToken = jwtTokenProvider.createRefreshToken(request.getUsername());
-                data.put("accessToken", accessToken);
-                data.put("refreshToken", refreshToken);
+                response.setAccessToken(accessToken);
+                response.setRefreshToken(refreshToken);
                 log.info("用户登录成功(RefreshToken模式): {}", request.getUsername());
             } else {
                 // 不续期 或 滑动窗口模式：只返回 accessToken
-                data.put("token", accessToken);
+                response.setToken(accessToken);
                 log.info("用户登录成功({}模式): {}",
                         securityProperties.getRenewal().getMode() == SecurityProperties.RenewalMode.SLIDING_WINDOW
                                 ? "滑动窗口" : "不续期",
                         request.getUsername());
             }
 
-            return Result.success(data);
+            return Result.success(response);
         } catch (Exception e) {
             log.warn("登录失败: {}", e.getMessage());
             throw new BadCredentialsException("用户名或密码错误");
@@ -152,16 +154,13 @@ public class AuthController {
      */
     @Operation(summary = "刷新Token", description = "使用RefreshToken换取新的AccessToken（仅refresh-token模式）")
     @PostMapping("/refresh")
-    public Result<Object> refresh(@RequestBody Map<String, String> request) {
+    public Result<Object> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         // 校验续期模式
         if (securityProperties.getRenewal().getMode() != SecurityProperties.RenewalMode.REFRESH_TOKEN) {
             return Result.fail("当前续期模式不支持刷新操作");
         }
 
-        String refreshToken = request.get("refreshToken");
-        if (refreshToken == null || refreshToken.isBlank()) {
-            return Result.fail("refreshToken不能为空");
-        }
+        String refreshToken = request.getRefreshToken();
 
         // 校验是否为有效的RefreshToken
         if (!jwtTokenProvider.validateToken(refreshToken)) {
@@ -180,12 +179,8 @@ public class AuthController {
         // 签发新的AccessToken
         String newAccessToken = jwtTokenProvider.createAccessToken(username);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("accessToken", newAccessToken);
-        data.put("username", username);
-
         log.debug("Token刷新成功: {}", username);
-        return Result.success(data);
+        return Result.success(new RefreshTokenResponse(newAccessToken, username));
     }
 
     /**
@@ -195,9 +190,6 @@ public class AuthController {
     @GetMapping("/info")
     public Result<Object> getUserInfo(
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetails userDetails) {
-        Map<String, Object> info = new HashMap<>();
-        info.put("username", userDetails.getUsername());
-
         // 分离角色和权限标识
         List<String> roles = new ArrayList<>();
         List<String> permissions = new ArrayList<>();
@@ -209,9 +201,6 @@ public class AuthController {
                 permissions.add(authority);
             }
         });
-        info.put("roles", roles);
-        info.put("permissions", permissions);
-        return Result.success(info);
+        return Result.success(new UserInfoResponse(userDetails.getUsername(), roles, permissions));
     }
-
 }

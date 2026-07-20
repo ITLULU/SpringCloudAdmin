@@ -1,13 +1,17 @@
 package com.opensabre.admin.web.controller.system;
 
 import com.opensabre.admin.common.entity.Result;
+import com.opensabre.admin.web.controller.system.request.AddUserRequest;
+import com.opensabre.admin.web.controller.system.request.EditUserRequest;
+import com.opensabre.admin.web.controller.system.request.ResetPasswordRequest;
+import com.opensabre.admin.web.controller.system.response.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 用户管理 Controller
@@ -31,10 +35,7 @@ public class SysUserController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         // TODO: 接入 Service 层查询
-        Map<String, Object> data = new HashMap<>();
-        data.put("total", 0);
-        data.put("rows", java.util.List.of());
-        return Result.success(data);
+        return Result.success(new PageResult<>(0L, List.of()));
     }
 
     @Operation(summary = "查询用户详情")
@@ -48,7 +49,7 @@ public class SysUserController {
     @Operation(summary = "新增用户")
     @PostMapping
     @PreAuthorize("hasAuthority('system:user:add')")
-    public Result<Object> add(@RequestBody Map<String, Object> body) {
+    public Result<Object> add(@Valid @RequestBody AddUserRequest request) {
         // TODO: 接入 Service 层新增
         return Result.success();
     }
@@ -56,7 +57,7 @@ public class SysUserController {
     @Operation(summary = "修改用户")
     @PutMapping
     @PreAuthorize("hasAuthority('system:user:edit')")
-    public Result<Object> edit(@RequestBody Map<String, Object> body) {
+    public Result<Object> edit(@Valid @RequestBody EditUserRequest request) {
         // TODO: 接入 Service 层修改
         return Result.success();
     }
@@ -72,7 +73,7 @@ public class SysUserController {
     @Operation(summary = "重置密码")
     @PutMapping("/resetPwd")
     @PreAuthorize("hasAuthority('system:user:edit')")
-    public Result<Object> resetPassword(@RequestBody Map<String, Object> body) {
+    public Result<Object> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         // TODO: 接入 Service 层重置密码
         return Result.success();
     }
