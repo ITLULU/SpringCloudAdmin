@@ -19,6 +19,12 @@
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-common</artifactId>
         </dependency>
+        <!-- Spring Security (SecurityUtils获取当前用户) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!-- MyBatis-Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>

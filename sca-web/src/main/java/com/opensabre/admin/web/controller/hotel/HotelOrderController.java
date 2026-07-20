@@ -1,7 +1,7 @@
 package com.opensabre.admin.web.controller.hotel;
 
 import com.opensabre.admin.common.entity.Result;
-import com.opensabre.admin.common.util.UserContextHolder;
+import com.opensabre.admin.common.util.SecurityUtils;
 import com.opensabre.admin.dao.entity.po.*;
 import com.opensabre.admin.dao.mapper.*;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
@@ -55,7 +55,7 @@ public class HotelOrderController {
     @PostMapping
     @Transactional(rollbackFor = Exception.class)
     public Result<Object> create(@Valid @RequestBody CreateOrderRequest request) {
-        String username = UserContextHolder.getInstance().getUsername();
+        String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");
@@ -122,7 +122,7 @@ public class HotelOrderController {
     @Operation(summary = "我的订单", description = "查询当前用户的订单列表")
     @GetMapping("/my")
     public Result<Object> myOrders(@RequestParam(required = false) String tripId) {
-        String username = UserContextHolder.getInstance().getUsername();
+        String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");
@@ -150,7 +150,7 @@ public class HotelOrderController {
     @Operation(summary = "订单详情", description = "查询订单详情含明细")
     @GetMapping("/{id}")
     public Result<Object> detail(@PathVariable String id) {
-        String username = UserContextHolder.getInstance().getUsername();
+        String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");
@@ -173,7 +173,7 @@ public class HotelOrderController {
     @PutMapping("/cancel/{id}")
     @Transactional(rollbackFor = Exception.class)
     public Result<Object> cancel(@PathVariable String id) {
-        String username = UserContextHolder.getInstance().getUsername();
+        String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
             return Result.fail("用户不存在");

@@ -1,7 +1,7 @@
 package com.opensabre.admin.dao.handler;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
-import com.opensabre.admin.common.util.UserContextHolder;
+import com.opensabre.admin.common.util.SecurityUtils;
 import com.opensabre.admin.dao.entity.po.BasePo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +18,7 @@ public class PoMetaObjectHandler implements MetaObjectHandler {
 
     private String getCurrentUsername() {
         return StringUtils.defaultIfBlank(
-                UserContextHolder.getInstance().getUsername(),
+                SecurityUtils.getCurrentUsername(),
                 BasePo.DEFAULT_USERNAME);
     }
 

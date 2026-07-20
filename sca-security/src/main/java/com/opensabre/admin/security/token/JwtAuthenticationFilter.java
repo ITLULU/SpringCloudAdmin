@@ -1,6 +1,5 @@
 package com.opensabre.admin.security.token;
 
-import com.opensabre.admin.common.util.UserContextHolder;
 import com.opensabre.admin.security.config.SecurityProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,7 +18,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * JWT认证过滤器 - 从请求头解析Token并设置SecurityContext
@@ -29,7 +27,7 @@ import java.util.Map;
  * 2. 校验 Token 有效性（签名、过期时间）
  * 3. 从 Token 中解析用户名，加载用户详情
  * 4. 校验用户状态（是否启用、是否锁定）
- * 5. 设置 SecurityContext 和 UserContextHolder（供业务层使用）
+ * 5. 设置 SecurityContext（供业务层通过 SecurityUtils 获取当前用户）
  * 6. 滑动窗口模式：检查Token剩余时间，不足时自动续期并通过响应头返回新Token
  * </p>
  * <p>
@@ -130,17 +128,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             context.setAuthentication(authentication);
 
-            // 9. 设置用户上下文（供业务层通过 UserContextHolder 获取当前用户名）
-            UserContextHolder.getInstance().setContext(Map.of(UserContextHolder.KEY_USERNAME, username));
-
-            // 10. 滑动窗口续期：检查Token剩余时间，不足时自动签发新Token
+            // 9. 滑动窗口续期：检查Token剩余时间，不足时自动签发新Token
             handleSlidingWindowRenewal(token, username, response);
 
             log.debug("JWT认证成功: {}, URI: {}", username, request.getRequestURI());
-
-        } finally {
-            // 请求结束后清理用户上下文，防止线程池复用导致数据污染
-            UserContextHolder.getInstance().clear();
+        } catch (Exception e) {
+            log.error("JWT认证处理异常, URI: {}", request.getRequestURI(), e);
         }
 
         // 继续执行后续过滤器和业务逻辑

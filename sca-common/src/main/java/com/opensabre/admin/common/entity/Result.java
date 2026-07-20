@@ -27,16 +27,16 @@ public class Result<T> {
     public static final String SUCCESSFUL_MESG = "success";
 
     @Schema(title = "处理结果code", required = true)
-    private final Integer code;
+    private  Integer code;
 
     @Schema(title = "处理结果描述信息")
-    private final String msg;
+    private  String msg;
 
     @Schema(title = "请求结果生成时间戳", required = true)
     @JsonFormat(pattern = DatePattern.UTC_MS_PATTERN)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
-    private final LocalDateTime time;
+    private LocalDateTime time;
 
     @Schema(title = "处理结果数据信息", required = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -51,6 +51,12 @@ public class Result<T> {
     public Result(ErrorType errorType) {
         this.code = errorType.getCode();
         this.msg = errorType.getMesg();
+        this.time = LocalDateTime.now();
+    }
+
+    public Result(Integer code, String msg) {
+        this.code = code;
+        this.msg = msg;
         this.time = LocalDateTime.now();
     }
 
@@ -78,8 +84,8 @@ public class Result<T> {
         return new Result<>(SystemErrorType.SYSTEM_ERROR);
     }
 
-    public static <T> Result<T> fail(T data) {
-        return new Result<>(SystemErrorType.SYSTEM_ERROR, data);
+    public static <T> Result<T> fail(String message) {
+        return new Result<>(SystemErrorType.SYSTEM_ERROR.getCode(), message);
     }
 
     public static Result<Object> fail(BaseException baseException) {
