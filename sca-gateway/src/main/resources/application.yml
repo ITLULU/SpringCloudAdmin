@@ -15,6 +15,18 @@ spring:
             - Path=/api/web/**
           filters:
             - StripPrefix=1
+        - id: sca-order
+          uri: lb://sca-order
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - StripPrefix=1
+        - id: sca-stock
+          uri: lb://sca-stock
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - StripPrefix=1
 
 logging:
   level:

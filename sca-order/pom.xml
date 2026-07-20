@@ -10,34 +10,24 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>sca-web</artifactId>
-    <description>Web接口层 - REST Controller与Swagger文档</description>
+    <artifactId>sca-order</artifactId>
+    <description>订单微服务 - 订单创建、查询、取消，支持Seata分布式事务</description>
 
     <dependencies>
-        <!-- Service层 -->
+        <!-- DAO层（复用PO和Mapper） -->
         <dependency>
             <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-service</artifactId>
-        </dependency>
-        <!-- RPC远程调用 -->
-        <dependency>
-            <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-rpc</artifactId>
-        </dependency>
-        <!-- 安全认证 -->
-        <dependency>
-            <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-security</artifactId>
+            <artifactId>sca-dao</artifactId>
         </dependency>
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- SpringDoc OpenAPI文档 -->
+        <!-- Validation -->
         <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <!-- Nacos服务发现 -->
         <dependency>
@@ -54,19 +44,24 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-        <!-- Seata 分布式事务（启用时取消注释） -->
-        <!--
+        <!-- SpringDoc OpenAPI -->
         <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
-        -->
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- Seata 分布式事务（预留，暂注释） -->
+        <!--
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+        -->
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

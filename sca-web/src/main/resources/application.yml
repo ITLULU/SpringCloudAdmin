@@ -53,3 +53,24 @@ security:
     - /swagger-ui.html
     - /v3/api-docs/**
     - /error
+
+# Seata 分布式事务配置（启用时取消注释）
+# seata:
+#   enabled: true
+#   application-id: ${spring.application.name}
+#   tx-service-group: sca-tx-group
+#   service:
+#     vgroup-mapping:
+#       sca-tx-group: default
+#   registry:
+#     type: nacos
+#     nacos:
+#       server-addr: 47.116.45.17:8848
+#       group: SEATA_GROUP
+#       namespace: ""
+#   config:
+#     type: nacos
+#     nacos:
+#       server-addr: 47.116.45.17:8848
+#       group: SEATA_GROUP
+#       namespace: ""

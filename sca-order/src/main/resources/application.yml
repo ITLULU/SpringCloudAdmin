@@ -1,0 +1,46 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_order_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${mysql.user}
+    password: ${mysql.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Seata 分布式事务配置（预留，启用时取消注释）
+# seata:
+#   enabled: true
+#   application-id: ${spring.application.name}
+#   tx-service-group: sca-tx-group
+#   service:
+#     vgroup-mapping:
+#       sca-tx-group: default
+#   registry:
+#     type: nacos
+#     nacos:
+#       server-addr: 47.116.45.17:8848
+#       group: SEATA_GROUP
+#       namespace: ""
+#   config:
+#     type: nacos
+#     nacos:
+#       server-addr: 47.116.45.17:8848
+#       group: SEATA_GROUP
+#       namespace: ""

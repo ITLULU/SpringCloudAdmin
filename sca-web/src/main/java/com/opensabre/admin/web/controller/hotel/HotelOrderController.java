@@ -4,34 +4,40 @@ import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.util.SecurityUtils;
 import com.opensabre.admin.dao.entity.po.*;
 import com.opensabre.admin.dao.mapper.*;
+import com.opensabre.admin.rpc.client.OrderFeignClient;
+import com.opensabre.admin.rpc.client.StockFeignClient;
+import com.opensabre.admin.rpc.client.dto.OrderCancelRequest;
+import com.opensabre.admin.rpc.client.dto.OrderCreateRequest;
+import com.opensabre.admin.rpc.client.dto.OrderDetailResponse;
+import com.opensabre.admin.rpc.client.dto.StockDeductRequest;
+import com.opensabre.admin.rpc.client.dto.StockRestoreRequest;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
-import com.opensabre.admin.web.controller.hotel.response.OrderDetailResponse;
-import com.opensabre.admin.web.controller.hotel.response.OrderListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 酒店订单Controller - 下单、查看订单、取消订单
+ * <p>
+ * 下单流程（分布式微服务架构）：
+ * 1. 本地校验（用户、行程、入住状态）
+ * 2. Feign 调用库存服务扣减库存
+ * 3. Feign 调用订单服务创建订单
+ * <p>
+ * Seata分布式事务：启用后在 create 方法添加 @GlobalTransactional 注解
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/hotel/order")
 @Tag(name = "酒店订单", description = "商品下单、订单管理")
 public class HotelOrderController {
-
-    @Autowired
-    private HotelOrderMapper hotelOrderMapper;
-
-    @Autowired
-    private HotelOrderItemMapper hotelOrderItemMapper;
 
     @Autowired
     private HotelTripMapper hotelTripMapper;
@@ -48,12 +54,21 @@ public class HotelOrderController {
     @Autowired
     private SysUserMapper sysUserMapper;
 
+    @Autowired
+    private OrderFeignClient orderFeignClient;
+
+    @Autowired
+    private StockFeignClient stockFeignClient;
+
     /**
-     * 创建订单（校验入住 + 扣减库存，事务保证）
+     * 创建订单
+     * <p>
+     * 流程：本地校验 → Feign调用库存服务扣减库存 → Feign调用订单服务创建订单
+     * Seata启用后添加 @GlobalTransactional 保证分布式事务一致性
      */
+    // @io.seata.spring.annotation.GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
     @Operation(summary = "创建订单", description = "下单购买商品，需要入住状态，扣减规格库存")
     @PostMapping
-    @Transactional(rollbackFor = Exception.class)
     public Result<Object> create(@Valid @RequestBody CreateOrderRequest request) {
         String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
@@ -73,51 +88,79 @@ public class HotelOrderController {
             return Result.fail("当前不在入住时间段内，无法下单");
         }
 
-        // 创建订单
-        HotelOrder order = new HotelOrder();
-        order.setUserId(user.getId());
-        order.setHotelId(request.getHotelId());
-        order.setTripId(request.getTripId());
-        order.setStatus(1);
-        hotelOrderMapper.insert(order);
-
-        // 创建订单明细 + 扣减库存
+        // ========== 构建库存扣减请求 ==========
+        List<StockDeductRequest.DeductItem> deductItems = new ArrayList<>();
         for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
-            // 查询商品和规格
+            // 查询商品和规格（获取名称和价格，用于传给订单服务）
             HotelProduct product = hotelProductMapper.selectById(item.getProductId());
             if (product == null || product.getStatus() != 1) {
-                throw new RuntimeException("商品不存在或已下架: " + item.getProductId());
+                return Result.fail("商品不存在或已下架: " + item.getProductId());
             }
-
             HotelProductSpec spec = hotelProductSpecMapper.selectById(item.getSpecId());
             if (spec == null || !spec.getProductId().equals(item.getProductId())) {
-                throw new RuntimeException("规格不存在: " + item.getSpecId());
+                return Result.fail("规格不存在: " + item.getSpecId());
             }
 
-            // 扣减库存（乐观锁）
-            int affected = hotelProductSpecMapper.deductStock(item.getSpecId(), item.getQuantity());
-            if (affected == 0) {
-                throw new RuntimeException("库存不足: " + spec.getSpecName());
-            }
+            StockDeductRequest.DeductItem deductItem = new StockDeductRequest.DeductItem();
+            deductItem.setSpecId(item.getSpecId());
+            deductItem.setQuantity(item.getQuantity());
+            deductItems.add(deductItem);
+        }
 
-            // 创建订单明细
-            HotelOrderItem orderItem = new HotelOrderItem();
-            orderItem.setOrderId(order.getId());
+        // ========== Feign 调用库存服务：批量扣减库存 ==========
+        StockDeductRequest deductRequest = new StockDeductRequest();
+        deductRequest.setItems(deductItems);
+        Result<Object> deductResult = stockFeignClient.deductStock(deductRequest);
+        if (deductResult.isFail()) {
+            return Result.fail("库存扣减失败: " + deductResult.getMsg());
+        }
+        log.info("库存扣减成功: hotelId={}", request.getHotelId());
+
+        // ========== 构建订单创建请求 ==========
+        OrderCreateRequest orderRequest = new OrderCreateRequest();
+        orderRequest.setUserId(user.getId());
+        orderRequest.setHotelId(request.getHotelId());
+        orderRequest.setTripId(request.getTripId());
+
+        List<OrderCreateRequest.OrderItemRequest> orderItems = new ArrayList<>();
+        for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
+            HotelProduct product = hotelProductMapper.selectById(item.getProductId());
+            HotelProductSpec spec = hotelProductSpecMapper.selectById(item.getSpecId());
+
+            OrderCreateRequest.OrderItemRequest orderItem = new OrderCreateRequest.OrderItemRequest();
             orderItem.setProductId(item.getProductId());
             orderItem.setSpecId(item.getSpecId());
             orderItem.setProductName(product.getName());
             orderItem.setSpecName(spec.getSpecName());
             orderItem.setQuantity(item.getQuantity());
             orderItem.setPrice(spec.getPrice() != null ? spec.getPrice() : BigDecimal.ZERO);
-            hotelOrderItemMapper.insert(orderItem);
+            orderItems.add(orderItem);
+        }
+        orderRequest.setItems(orderItems);
+
+        // ========== Feign 调用订单服务：创建订单 ==========
+        Result<OrderDetailResponse> orderResult = orderFeignClient.createOrder(orderRequest);
+        if (orderResult.isFail()) {
+            // 订单创建失败，需要归还库存（Seata会自动回滚，但防御性编程保留手动归还）
+            StockRestoreRequest restoreRequest = new StockRestoreRequest();
+            List<StockRestoreRequest.RestoreItem> restoreItems = deductItems.stream().map(d -> {
+                StockRestoreRequest.RestoreItem ri = new StockRestoreRequest.RestoreItem();
+                ri.setSpecId(d.getSpecId());
+                ri.setQuantity(d.getQuantity());
+                return ri;
+            }).toList();
+            restoreRequest.setItems(restoreItems);
+            stockFeignClient.restoreStock(restoreRequest);
+            log.warn("订单创建失败，已归还库存: {}", orderResult.getMsg());
+            return Result.fail("订单创建失败: " + orderResult.getMsg());
         }
 
-        log.info("订单创建成功: orderId={}, userId={}, hotelId={}", order.getId(), user.getId(), request.getHotelId());
-        return Result.success(order);
+        log.info("订单创建成功: orderId={}, userId={}", orderResult.getData().getId(), user.getId());
+        return Result.success(orderResult.getData());
     }
 
     /**
-     * 我的订单列表
+     * 我的订单列表（通过 Feign 调用订单服务）
      */
     @Operation(summary = "我的订单", description = "查询当前用户的订单列表")
     @GetMapping("/my")
@@ -128,24 +171,12 @@ public class HotelOrderController {
             return Result.fail("用户不存在");
         }
 
-        List<HotelOrder> orders;
-        if (tripId != null && !tripId.isBlank()) {
-            orders = hotelOrderMapper.selectByTripId(tripId);
-        } else {
-            orders = hotelOrderMapper.selectByUserId(user.getId());
-        }
-
-        List<OrderListResponse> result = orders.stream().map(order -> {
-            List<HotelOrderItem> items = hotelOrderItemMapper.selectByOrderId(order.getId());
-            Hotel hotel = hotelMapper.selectById(order.getHotelId());
-            return new OrderListResponse(order, items, hotel != null ? hotel.getName() : "");
-        }).toList();
-
-        return Result.success(result);
+        Result<List<OrderDetailResponse>> result = orderFeignClient.listOrders(user.getId(), tripId);
+        return Result.success(result.getData());
     }
 
     /**
-     * 订单详情
+     * 订单详情（通过 Feign 调用订单服务）
      */
     @Operation(summary = "订单详情", description = "查询订单详情含明细")
     @GetMapping("/{id}")
@@ -156,22 +187,22 @@ public class HotelOrderController {
             return Result.fail("用户不存在");
         }
 
-        HotelOrder order = hotelOrderMapper.selectById(id);
-        if (order == null || !order.getUserId().equals(user.getId())) {
+        Result<OrderDetailResponse> result = orderFeignClient.getOrderDetail(id);
+        if (result.isFail()) {
             return Result.fail("订单不存在");
         }
-
-        List<HotelOrderItem> items = hotelOrderItemMapper.selectByOrderId(id);
-        Hotel hotel = hotelMapper.selectById(order.getHotelId());
-        return Result.success(new OrderDetailResponse(order, items, hotel));
+        return Result.success(result.getData());
     }
 
     /**
-     * 取消订单（归还库存，事务保证）
+     * 取消订单
+     * <p>
+     * 流程：Feign调用订单服务取消 → Feign调用库存服务归还库存
+     * Seata启用后添加 @GlobalTransactional 保证分布式事务一致性
      */
+    // @io.seata.spring.annotation.GlobalTransactional(name = "cancel-order", rollbackFor = Exception.class)
     @Operation(summary = "取消订单", description = "取消订单并归还库存")
     @PutMapping("/cancel/{id}")
-    @Transactional(rollbackFor = Exception.class)
     public Result<Object> cancel(@PathVariable String id) {
         String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);
@@ -179,23 +210,40 @@ public class HotelOrderController {
             return Result.fail("用户不存在");
         }
 
-        HotelOrder order = hotelOrderMapper.selectById(id);
-        if (order == null || !order.getUserId().equals(user.getId())) {
+        // 先查询订单详情（获取明细用于归还库存）
+        Result<OrderDetailResponse> detailResult = orderFeignClient.getOrderDetail(id);
+        if (detailResult.isFail()) {
             return Result.fail("订单不存在");
+        }
+
+        OrderDetailResponse order = detailResult.getData();
+        if (!order.getUserId().equals(user.getId())) {
+            return Result.fail("无权操作此订单");
         }
         if (order.getStatus() == 0) {
             return Result.fail("订单已取消");
         }
 
-        // 归还库存
-        List<HotelOrderItem> items = hotelOrderItemMapper.selectByOrderId(id);
-        for (HotelOrderItem item : items) {
-            hotelProductSpecMapper.restoreStock(item.getSpecId(), item.getQuantity());
+        // ========== Feign 调用订单服务：取消订单 ==========
+        OrderCancelRequest cancelRequest = new OrderCancelRequest();
+        cancelRequest.setOrderId(id);
+        Result<Object> cancelResult = orderFeignClient.cancelOrder(cancelRequest);
+        if (cancelResult.isFail()) {
+            return Result.fail(cancelResult.getMsg());
         }
 
-        // 更新订单状态
-        order.setStatus(0);
-        hotelOrderMapper.updateById(order);
+        // ========== Feign 调用库存服务：归还库存 ==========
+        if (order.getItems() != null && !order.getItems().isEmpty()) {
+            StockRestoreRequest restoreRequest = new StockRestoreRequest();
+            List<StockRestoreRequest.RestoreItem> restoreItems = order.getItems().stream().map(item -> {
+                StockRestoreRequest.RestoreItem ri = new StockRestoreRequest.RestoreItem();
+                ri.setSpecId(item.getSpecId());
+                ri.setQuantity(item.getQuantity());
+                return ri;
+            }).toList();
+            restoreRequest.setItems(restoreItems);
+            stockFeignClient.restoreStock(restoreRequest);
+        }
 
         log.info("订单取消成功: orderId={}, userId={}", id, user.getId());
         return Result.success();

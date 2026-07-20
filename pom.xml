@@ -19,6 +19,8 @@
         <module>sca-gateway</module>
         <module>sca-security</module>
         <module>sca-es</module>
+        <module>sca-order</module>
+        <module>sca-stock</module>
     </modules>
 
     <name>SpringCloudAdmin</name>
@@ -170,6 +172,16 @@
             <dependency>
                 <groupId>com.opensabre.admin</groupId>
                 <artifactId>sca-es</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-order</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.opensabre.admin</groupId>
+                <artifactId>sca-stock</artifactId>
                 <version>${revision}</version>
             </dependency>
 

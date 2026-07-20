@@ -19,6 +19,7 @@
 | API网关 | Spring Cloud Gateway | (Spring Cloud内置) |
 | 持久层 | MyBatis-Plus | 3.5.5 |
 | 数据库 | MySQL | 8.3.0 |
+| 分布式事务 | Seata | (Spring Cloud Alibaba内置) |
 | 缓存 | JetCache + Redis | 2.7.6 |
 | 安全认证 | Spring Security 6 | (Spring Boot内置) |
 | 全文检索 | Spring Data Elasticsearch | (Spring Boot内置) |
@@ -39,10 +40,12 @@ SpringCloudAdmin/
 ├── sca-common/              # 公共模块
 ├── sca-dao/                 # 数据库DAO层
 ├── sca-service/             # 业务Service层
-├── sca-rpc/                 # RPC远程调用
-├── sca-web/                 # Web接口层 (可独立部署)
+├── sca-rpc/                 # RPC远程调用 (Feign客户端 + 共享DTO)
+├── sca-web/                 # Web接口层 (可独立部署，:8080)
+├── sca-order/               # 订单微服务 (可独立部署，:8081)
+├── sca-stock/               # 库存微服务 (可独立部署，:8082)
 ├── sca-config/              # 配置中心
-├── sca-gateway/             # API网关 (可独立部署)
+├── sca-gateway/             # API网关 (可独立部署，:9000)
 ├── sca-security/            # 安全认证层
 └── sca-es/                  # Elasticsearch检索层
 ```
@@ -56,9 +59,14 @@ sca-dao (数据库层)
     ↓
 sca-service (业务逻辑层)
     ↓
-sca-rpc (远程调用)  ←→  sca-web (REST接口，可部署应用)
+sca-rpc (远程调用)  ←→  sca-web (REST接口，:8080)
+                              │
+                    OpenFeign │ (跨服务调用)
+                    ┌─────────┼─────────┐
+                    ↓                   ↓
+              sca-order(:8081)    sca-stock(:8082)
     
-sca-gateway (API网关，独立部署)
+sca-gateway (API网关，:9000)
 sca-security (安全认证，被web引用)
 sca-es (检索层，被service/web引用)
 sca-config (配置中心，共享配置)
@@ -75,14 +83,14 @@ sca-config (配置中心，共享配置)
 - **统一响应封装** `Result<T>` — 所有REST接口返回统一的 `{code, mesg, time, data}` 格式
 - **全局异常处理** `GlobalExceptionHandlerAdvice` — 自动捕获参数校验、业务、系统异常
 - **响应体自动包装** `RestResponseBodyAdvice` — Controller返回值自动包装为 `Result`
-- **用户上下文** `UserContextHolder` — 基于 ThreadLocal 的线程级用户信息存储
+- **安全工具类** `SecurityUtils` — 从 Spring Security SecurityContext 获取当前登录用户（替代自定义 ThreadLocal）
 - **异常体系** — `BaseException`、`ServiceException`、`SystemErrorType`
 
 ### sca-dao — 数据库DAO层
 
 - 基于 **MyBatis-Plus 3.5.5** (Spring Boot 3 Starter)
 - `BasePo` 持久化基类 — 审计字段自动填充（createdBy/createdTime/updatedBy/updatedTime）
-- `PoMetaObjectHandler` — 从 `UserContextHolder` 获取当前操作用户
+- `PoMetaObjectHandler` — 从 `SecurityUtils` 获取当前操作用户
 - 内置插件：分页、防全表更新删除、SQL性能规范
 
 ### sca-service — 业务Service层
@@ -95,6 +103,9 @@ sca-config (配置中心，共享配置)
 - 基于 **OpenFeign** 的声明式HTTP客户端
 - `FeignHeaderInterceptor` — 微服务间调用时自动透传HTTP Header（Token/用户信息）
 - 集成 Spring Cloud LoadBalancer 负载均衡
+- `OrderFeignClient` — 调用订单服务（sca-order）创建/取消/查询订单
+- `StockFeignClient` — 调用库存服务（sca-stock）扣减/归还库存
+- `rpc/client/dto/*` — 跨服务共享的请求/响应 DTO
 
 ### sca-web — Web接口层（可部署应用）
 
@@ -129,6 +140,132 @@ sca-config (配置中心，共享配置)
 - `BaseDocument` 文档基类
 - 自动扫描 Repository 接口
 
+### sca-order — 订单微服务（可独立部署）
+
+- 独立 Spring Boot 应用，端口 `8081`
+- 独立数据库 `sca_order_db`（hotel_order + hotel_order_item）
+- 内部接口 `/inner/order/*`（供 Feign 调用，无需认证）
+- 职责：订单创建、订单取消、订单查询
+- 支持 Seata 分布式事务（AT 模式）
+
+### sca-stock — 库存微服务（可独立部署）
+
+- 独立 Spring Boot 应用，端口 `8082`
+- 独立数据库 `sca_stock_db`（hotel_product_spec）
+- 内部接口 `/inner/stock/*`（供 Feign 调用，无需认证）
+- 职责：库存扣减（乐观锁）、库存归还、库存查询
+- 支持 Seata 分布式事务（AT 模式）
+
+---
+
+## 下单流程（分布式架构）
+
+```
+用户请求 → Gateway(:9000) → sca-web(:8080)
+                                │
+                                │  HotelOrderController.create()
+                                │
+                  ┌─────────────┼─────────────────┐
+                  │             │                 │
+                  ↓             ↓                 ↓
+           本地校验      Feign调用sca-stock   Feign调用sca-order
+         (用户/行程/     /inner/stock/deduct   /inner/order/create
+          入住状态)        (批量扣减库存)         (创建订单+明细)
+                  │             │                 │
+                  └─────────────┴─────────────────┘
+                                │
+                     [Seata @GlobalTransactional]
+                     分布式事务一致性保证
+```
+
+### 详细流程
+
+| 步骤 | 服务 | 操作 | 失败处理 |
+|------|------|------|----------|
+| 1 | sca-web | 校验用户、行程有效性、入住状态 | 直接返回错误 |
+| 2 | sca-web | 查询商品/规格（获取名称和价格） | 直接返回错误 |
+| 3 | sca-stock | Feign调用：批量扣减库存（乐观锁） | 返回库存不足 |
+| 4 | sca-order | Feign调用：创建订单+订单明细 | 补偿归还库存 |
+
+### 取消订单流程
+
+| 步骤 | 服务 | 操作 |
+|------|------|------|
+| 1 | sca-web | 查询订单详情（获取明细用于归还库存） |
+| 2 | sca-order | Feign调用：更新订单状态为已取消 |
+| 3 | sca-stock | Feign调用：批量归还库存 |
+
+---
+
+## Seata 分布式事务
+
+项目使用 **Seata AT 模式** 保证下单流程的分布式事务一致性。
+
+### 架构角色
+
+| 角色 | 服务 | 说明 |
+|------|------|------|
+| TC (Transaction Coordinator) | Seata Server | 协调全局事务的提交/回滚 |
+| TM (Transaction Manager) | sca-web | 全局事务发起者（`@GlobalTransactional`） |
+| RM (Resource Manager) | sca-order / sca-stock | 分支事务参与者（本地数据库操作） |
+
+### 事务流程
+
+```
+TM(sca-web)                    TC(Seata Server)              RM(sca-order/stock)
+    │                               │                              │
+    ├── 1. begin ─────────────────→ │                              │
+    │                               │                              │
+    ├── 2. Feign ──────────────────────────────────────────────→ 执行本地SQL
+    │                               │  ←── 3. 注册分支事务 ─────── │
+    │                               │  ──→ 4. 确认/回滚 ─────────→ │
+    │                               │                              │
+    ├── 5. commit/rollback ────────→│  ──→ 6. 异步清理undo_log ──→ │
+    │                               │                              │
+```
+
+### 启用步骤
+
+1. **部署 Seata Server**（TC）
+2. **数据库建 undo_log 表**（每个参与服务对应的数据库）
+3. **取消 pom.xml 中 Seata 依赖注释**（sca-web、sca-order、sca-stock）
+4. **取消 application.yml 中 Seata 配置注释**（三个服务）
+5. **取消 Controller 中 `@GlobalTransactional` 注解注释**
+
+### 配置示例（已预留在各服务 application.yml 中）
+
+```yaml
+seata:
+  enabled: true
+  application-id: ${spring.application.name}
+  tx-service-group: sca-tx-group
+  service:
+    vgroup-mapping:
+      sca-tx-group: default
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 47.116.45.17:8848
+      group: SEATA_GROUP
+```
+
+### undo_log 表（每个数据库都需要）
+
+```sql
+CREATE TABLE IF NOT EXISTS undo_log (
+    id            bigint(20)   NOT NULL AUTO_INCREMENT,
+    branch_id     bigint(20)   NOT NULL,
+    xid           varchar(100) NOT NULL,
+    context       varchar(128) NOT NULL,
+    rollback_info longblob     NOT NULL,
+    log_status    int(11)      NOT NULL,
+    log_created   datetime(6)  NOT NULL,
+    log_modified  datetime(6)  NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY ux_undo_log (xid, branch_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Seata AT模式 undo_log';
+```
+
 ---
 
 ## 依赖管理
@@ -153,6 +290,7 @@ sca-config (配置中心，共享配置)
 - Nacos 2.3.x
 - Redis（可选）
 - Elasticsearch（可选）
+- Seata Server（可选，启用分布式事务时需要）
 
 ### 编译
 
@@ -164,6 +302,20 @@ mvn clean compile
 
 ```bash
 cd sca-web
+mvn spring-boot:run
+```
+
+### 启动订单服务
+
+```bash
+cd sca-order
+mvn spring-boot:run
+```
+
+### 启动库存服务
+
+```bash
+cd sca-stock
 mvn spring-boot:run
 ```
 
@@ -213,6 +365,20 @@ spring:
           uri: lb://sca-web
           predicates:
             - Path=/api/web/**
+          filters:
+            - StripPrefix=1
+        - id: sca-order
+          uri: lb://sca-order
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - StripPrefix=1
+        - id: sca-stock
+          uri: lb://sca-stock
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - StripPrefix=1
 ```
 
 ---
