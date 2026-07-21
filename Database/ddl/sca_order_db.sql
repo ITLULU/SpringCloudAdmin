@@ -1,6 +1,6 @@
 -- =============================================
 -- 订单微服务数据库 DDL (sca_order_db)
--- Seata 启用后会自动创建 undo_log 表
+-- Seata AT模式需要在每个参与库中创建 undo_log 表
 -- =============================================
 CREATE DATABASE IF NOT EXISTS sca_order_db;
 USE sca_order_db;
@@ -47,17 +47,17 @@ CREATE TABLE IF NOT EXISTS hotel_order_item (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='订单明细表';
 
 -- ----------------------------
--- 3. Seata undo_log 表（启用 Seata 时执行）
+-- 3. Seata undo_log 表
 -- ----------------------------
--- CREATE TABLE IF NOT EXISTS undo_log (
---     id            bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键',
---     branch_id     bigint(20)   NOT NULL COMMENT '分支事务ID',
---     xid           varchar(100) NOT NULL COMMENT '全局事务ID',
---     context       varchar(128) NOT NULL COMMENT '上下文',
---     rollback_info longblob     NOT NULL COMMENT '回滚信息',
---     log_status    int(11)      NOT NULL COMMENT '日志状态',
---     log_created   datetime(6)  NOT NULL COMMENT '创建时间',
---     log_modified  datetime(6)  NOT NULL COMMENT '修改时间',
---     PRIMARY KEY (id),
---     UNIQUE KEY ux_undo_log (xid, branch_id)
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Seata AT模式 undo_log';
+CREATE TABLE IF NOT EXISTS undo_log (
+    id            bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    branch_id     bigint(20)   NOT NULL COMMENT '分支事务ID',
+    xid           varchar(100) NOT NULL COMMENT '全局事务ID',
+    context       varchar(128) NOT NULL COMMENT '上下文',
+    rollback_info longblob     NOT NULL COMMENT '回滚信息',
+    log_status    int(11)      NOT NULL COMMENT '日志状态',
+    log_created   datetime(6)  NOT NULL COMMENT '创建时间',
+    log_modified  datetime(6)  NOT NULL COMMENT '修改时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY ux_undo_log (xid, branch_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Seata AT模式 undo_log';

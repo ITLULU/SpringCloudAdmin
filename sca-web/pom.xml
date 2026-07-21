@@ -54,13 +54,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-        <!-- Seata 分布式事务（启用时取消注释） -->
-        <!--
+        <!-- Seata 分布式事务 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
         </dependency>
-        -->
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -79,8 +79,8 @@ onMounted(async () => {
     order.value = res.data?.order
     items.value = res.data?.items || []
     hotel.value = res.data?.hotel
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取订单详情失败', e)
   } finally {
     pageLoading.value = false
   }
@@ -100,8 +100,10 @@ async function handleCancel() {
     await request.put(`/hotel/order/cancel/${orderId}`)
     showToast('订单已取消，库存已归还')
     order.value.status = 0
-  } catch {
-    // cancelled or error
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error('取消订单失败', e)
+    }
   }
 }
 </script>

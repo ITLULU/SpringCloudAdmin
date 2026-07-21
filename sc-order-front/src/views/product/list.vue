@@ -77,12 +77,12 @@ onMounted(async () => {
         if (tripRes.data?.trip) {
           currentTripId.value = tripRes.data.trip.id
         }
-      } catch {
+      } catch (e: any) {
         checkedIn.value = false
       }
     }
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('加载商品列表失败', e)
   } finally {
     pageLoading.value = false
   }

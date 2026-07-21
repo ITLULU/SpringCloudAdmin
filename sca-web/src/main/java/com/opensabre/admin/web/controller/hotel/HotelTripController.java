@@ -14,6 +14,7 @@ import com.opensabre.admin.web.controller.hotel.response.TripWithHotelResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ import java.util.List;
 /**
  * 酒店行程Controller - 创建行程、查看行程、取消行程
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/hotel/trip")
 @Tag(name = "酒店行程", description = "入住、行程管理")
@@ -43,8 +45,10 @@ public class HotelTripController {
     @PostMapping
     public Result<HotelTrip> create(@Valid @RequestBody CreateTripRequest request) {
         String username = SecurityUtils.getCurrentUsername();
+        log.info("[创建行程] username={}, hotelId={}", username, request.getHotelId());
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
+            log.warn("[创建行程] 用户不存在: username={}", username);
             return Result.fail("用户不存在");
         }
 
@@ -85,8 +89,10 @@ public class HotelTripController {
     @GetMapping("/my")
     public Result<Object> myTrips() {
         String username = SecurityUtils.getCurrentUsername();
+        log.info("[我的行程] username={}", username);
         SysUser user = sysUserMapper.selectByUsername(username);
         if (user == null) {
+            log.warn("[我的行程] 用户不存在: username={}", username);
             return Result.fail("用户不存在");
         }
 

@@ -87,8 +87,8 @@ async function fetchHotels() {
       params: { pageNum: 1, pageSize: 20, keyword: keyword.value }
     })
     hotels.value = res.data?.records || []
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取酒店列表失败', e)
   } finally {
     loading.value = false
   }

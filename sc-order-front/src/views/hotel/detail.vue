@@ -66,8 +66,8 @@ onMounted(async () => {
   try {
     const res: any = await request.get(`/hotel/${route.params.id}`)
     hotel.value = res.data
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取酒店详情失败', e)
   } finally {
     pageLoading.value = false
   }

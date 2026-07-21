@@ -107,8 +107,8 @@ onMounted(async () => {
   try {
     const res: any = await request.get(`/hotel/${hotelId}`)
     hotelName.value = res.data?.name || ''
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取酒店信息失败', e)
   }
 })
 
@@ -145,8 +145,8 @@ async function handleSubmit() {
     })
     showToast('入住成功')
     router.replace('/trip/list')
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('创建行程失败', e)
   } finally {
     submitting.value = false
   }

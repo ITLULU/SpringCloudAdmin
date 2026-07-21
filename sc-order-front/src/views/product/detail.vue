@@ -109,8 +109,8 @@ onMounted(async () => {
     const res: any = await request.get(`/hotel/product/${productId}`)
     product.value = res.data?.product
     specs.value = res.data?.specs || []
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取商品详情失败', e)
   } finally {
     pageLoading.value = false
   }
@@ -137,8 +137,8 @@ async function handleOrder() {
     })
     showToast('下单成功')
     router.push('/order/list')
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('下单失败', e)
   } finally {
     orderLoading.value = false
   }

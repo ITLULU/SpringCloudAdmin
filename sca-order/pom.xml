@@ -55,13 +55,11 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- Seata 分布式事务（预留，暂注释） -->
-        <!--
+        <!-- Seata 分布式事务 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
         </dependency>
-        -->
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

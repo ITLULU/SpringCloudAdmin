@@ -86,8 +86,8 @@ async function fetchTrips() {
   try {
     const res: any = await request.get('/hotel/trip/my')
     trips.value = res.data || []
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取行程列表失败', e)
   } finally {
     loading.value = false
   }
@@ -110,8 +110,10 @@ async function handleCancel(trip: any) {
     await request.put(`/hotel/trip/cancel/${trip.id}`)
     showToast('已取消')
     fetchTrips()
-  } catch {
-    // cancelled or error
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error('取消行程失败', e)
+    }
   }
 }
 </script>

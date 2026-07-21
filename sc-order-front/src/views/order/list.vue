@@ -64,8 +64,8 @@ async function fetchOrders() {
     if (tripId) params.tripId = tripId
     const res: any = await request.get('/hotel/order/my', { params })
     orders.value = res.data || []
-  } catch {
-    // handled
+  } catch (e: any) {
+    console.error('获取订单列表失败', e)
   } finally {
     loading.value = false
   }

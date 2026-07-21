@@ -3,6 +3,8 @@ server:
 
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
   profiles:
     active: dev
   datasource:
@@ -44,9 +46,8 @@ security:
     - /api/auth/register
     - /api/auth/refresh
     - /api/hotel/list
-    - /api/hotel/*
     - /api/hotel/product/list
-    - /api/hotel/product/*
+    - /api/hotel/product/{id}
     - /api/health
     - /actuator/**
     - /swagger-ui/**
@@ -62,7 +63,7 @@ logging:
     # Feign内部日志引擎
     feign: DEBUG
 
-# Seata 分布式事务配置（启用时取消注释）
+# Seata 分布式事务配置
 seata:
   enabled: true
   application-id: ${spring.application.name}
@@ -76,6 +77,7 @@ seata:
       application: seata-server
       server-addr: 47.116.45.17:8848
       group: SEATA_GROUP
+      namespace: ""
       username: ${nacos.username}
       password: ${nacos.password}
   config:
@@ -83,6 +85,7 @@ seata:
     nacos:
       server-addr: 47.116.45.17:8848
       group: SEATA_GROUP
+      namespace: ""
       data-id: seataServer.properties
       username: ${nacos.username}
       password: ${nacos.password}

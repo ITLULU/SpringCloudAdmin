@@ -17,6 +17,7 @@ import com.opensabre.admin.rpc.client.dto.OrderDetailResponse;
 import com.opensabre.admin.rpc.client.dto.StockDeductRequest;
 import com.opensabre.admin.rpc.client.dto.StockRestoreRequest;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
+import io.seata.spring.annotation.GlobalTransactional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -63,9 +64,9 @@ public class HotelOrderController {
      * 创建订单
      * <p>
      * 流程：本地校验 → Feign调用库存服务扣减库存 → Feign调用订单服务创建订单
-     * Seata启用后添加 @GlobalTransactional 保证分布式事务一致性
+     * Seata @GlobalTransactional 保证分布式事务一致性，任一步骤失败自动回滚所有分支事务
      */
-    // @io.seata.spring.annotation.GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
+    @GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
     @Operation(summary = "创建订单", description = "下单购买商品，需要入住状态，扣减规格库存")
     @PostMapping
     public Result<Object> create(@Valid @RequestBody CreateOrderRequest request) {
