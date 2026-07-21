@@ -25,26 +25,41 @@
       <div class="info-card">
         <div class="info-row">
           <span class="label">酒店</span>
-          <span class="value">{{ hotel?.name }}</span>
+          <span class="value">
+            <van-icon name="hotel-o" size="14" style="margin-right: 4px; color: var(--primary)" />
+            {{ hotelName }}
+          </span>
         </div>
         <div class="info-row">
           <span class="label">下单时间</span>
           <span class="value">{{ formatTime(order.createdTime) }}</span>
+        </div>
+        <div class="info-row" v-if="order.tripId">
+          <span class="label">关联行程</span>
+          <span class="value">{{ order.tripId }}</span>
         </div>
       </div>
 
       <!-- 商品明细 -->
       <div class="items-card">
         <h3 class="section-title">商品明细</h3>
-        <div v-for="item in items" :key="item.id" class="item-row">
-          <div class="item-left">
+        <div v-for="(item, idx) in items" :key="idx" class="item-row">
+          <div class="item-icon">
+            <van-icon name="gift-o" size="18" />
+          </div>
+          <div class="item-info">
             <span class="item-name">{{ item.productName }}</span>
-            <van-tag plain round>{{ item.specName }}</van-tag>
+            <van-tag plain round size="small">{{ item.specName }}</van-tag>
           </div>
           <div class="item-right">
             <span class="item-qty">x{{ item.quantity }}</span>
-            <span class="item-price">{{ item.price === '0.00' || item.price === 0 ? '免费' : `¥${item.price}` }}</span>
+            <span class="item-price">{{ formatPrice(item.price) }}</span>
           </div>
+        </div>
+        <!-- 合计 -->
+        <div class="total-row">
+          <span>共 {{ totalQty }} 件商品</span>
+          <span class="total-amount">合计 ¥{{ formatAmount(totalAmount) }}</span>
         </div>
       </div>
 
@@ -55,11 +70,18 @@
         </van-button>
       </div>
     </template>
+
+    <!-- 无数据 -->
+    <div v-else class="empty-state">
+      <van-icon name="bag-o" size="48" color="#d1d5db" />
+      <p>订单不存在或加载失败</p>
+      <van-button size="small" type="primary" round @click="router.back()">返回</van-button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import request from '@/utils/request'
@@ -70,15 +92,33 @@ const orderId = route.params.id as string
 
 const order = ref<any>(null)
 const items = ref<any[]>([])
-const hotel = ref<any>(null)
+const hotelName = ref('')
+const totalAmount = ref(0)
 const pageLoading = ref(true)
+
+const totalQty = computed(() => items.value.reduce((sum, i) => sum + (i.quantity || 0), 0))
 
 onMounted(async () => {
   try {
     const res: any = await request.get(`/hotel/order/${orderId}`)
-    order.value = res.data?.order
-    items.value = res.data?.items || []
-    hotel.value = res.data?.hotel
+    console.log('[订单详情] 响应数据:', res.data)
+    const data = res.data
+
+    if (data) {
+      // 兼容两种格式
+      if (data.order) {
+        order.value = data.order
+        items.value = data.items || []
+        hotelName.value = data.hotelName || '酒店'
+        totalAmount.value = data.totalAmount || 0
+      } else {
+        // 平铺格式
+        order.value = data
+        items.value = data.items || []
+        hotelName.value = '酒店'
+        totalAmount.value = data.totalAmount || 0
+      }
+    }
   } catch (e: any) {
     console.error('获取订单详情失败', e)
   } finally {
@@ -88,7 +128,18 @@ onMounted(async () => {
 
 function formatTime(time: string) {
   if (!time) return ''
-  return new Date(time).toLocaleString('zh-CN')
+  const d = new Date(time)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function formatPrice(price: any) {
+  if (!price || price === '0.00' || price === 0) return '免费'
+  return `¥${Number(price).toFixed(2)}`
+}
+
+function formatAmount(amount: any) {
+  if (!amount) return '0.00'
+  return Number(amount).toFixed(2)
 }
 
 async function handleCancel() {
@@ -133,6 +184,7 @@ async function handleCancel() {
   text-decoration: underline;
 }
 
+/* 状态区域 */
 .status-section {
   display: flex;
   align-items: center;
@@ -168,8 +220,10 @@ async function handleCancel() {
   font-size: 12px;
   opacity: 0.85;
   margin: 0;
+  word-break: break-all;
 }
 
+/* 信息卡片 */
 .info-card,
 .items-card {
   background: var(--card-bg);
@@ -201,8 +255,11 @@ async function handleCancel() {
   font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+  display: flex;
+  align-items: center;
 }
 
+/* 商品明细 */
 .section-title {
   font-size: 15px;
   font-weight: 600;
@@ -215,44 +272,85 @@ async function handleCancel() {
 .item-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
 }
 
-.item-row:last-child {
+.item-row:last-of-type {
   border-bottom: none;
 }
 
-.item-left {
+.item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ede9fe, #e0e7ff);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.item-icon :deep(.van-icon) {
+  color: var(--primary);
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .item-name {
   font-size: 14px;
   color: var(--text-primary);
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-right {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .item-qty {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 .item-price {
   font-size: 14px;
-  color: #ef4444;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
+/* 合计 */
+.total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  margin-top: 8px;
+  border-top: 2px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.total-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+/* 操作 */
 .action-section {
   margin-top: 24px;
 }
@@ -260,5 +358,17 @@ async function handleCancel() {
 .cancel-btn {
   height: 44px;
   font-weight: 500;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  margin: 16px 0;
+  font-size: 15px;
 }
 </style>

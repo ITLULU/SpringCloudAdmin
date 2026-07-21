@@ -1,5 +1,6 @@
 package com.opensabre.admin.rpc.config;
 
+import com.opensabre.admin.common.util.UsernameContext;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,11 @@ public class FeignHeaderInterceptor implements RequestInterceptor {
     @Override
     public void apply(RequestTemplate template) {
         getHeaders().forEach(template::header);
+        // 传递当前登录用户名到下游服务
+        String username = UsernameContext.getUsername();
+        if (username != null) {
+            template.header("X-Username", username);
+        }
     }
 
     private Map<String, String> getHeaders() {

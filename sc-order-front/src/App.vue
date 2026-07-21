@@ -69,6 +69,21 @@ body {
   --radius: 12px;
   --max-width: 960px;
 }
+
+/* Vant Toast 置顶 + 确保可见 */
+.van-toast {
+  z-index: 9999 !important;
+  min-width: 180px;
+  background: rgba(0, 0, 0, 0.85) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.van-toast--top {
+  top: 70px !important;
+}
 </style>
 
 <style scoped>

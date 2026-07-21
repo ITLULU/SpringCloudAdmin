@@ -8,7 +8,11 @@ import router from '@/router'
 function safeToast(message: string) {
   nextTick(() => {
     closeToast()
-    showToast(message)
+    showToast({
+      message,
+      position: 'top',
+      duration: 3000
+    })
   })
 }
 
@@ -33,7 +37,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data
-    console.log('[Response]', response.config.url, 'status:', response.status, 'body:', res)
+    // console.log('[Response]', response.config.url, 'status:', response.status, 'body:', res)
     // 检查服务端返回的业务状态码
     if (res && typeof res === 'object' && 'code' in res && res.code !== 200 && res.code !== '200') {
       const msg = res.msg || '请求失败'
@@ -51,7 +55,7 @@ service.interceptors.response.use(
   (error: any) => {
     const status = error.response?.status
     const data = error.response?.data
-    console.log('[HttpError]', error.config?.url, 'status:', status, 'data:', data)
+    // console.log('[HttpError]', error.config?.url, 'status:', status, 'data:', data)
     // 优先显示服务端返回的错误信息
     const serverMsg = data?.msg || data?.message
     console.warn('[HTTP Error]', error.config?.url, '→', status, serverMsg || error.message)

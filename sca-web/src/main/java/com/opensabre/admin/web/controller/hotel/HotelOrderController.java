@@ -2,10 +2,12 @@ package com.opensabre.admin.web.controller.hotel;
 
 import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.util.SecurityUtils;
+import com.opensabre.admin.dao.entity.po.Hotel;
 import com.opensabre.admin.dao.entity.po.HotelTrip;
 import com.opensabre.admin.dao.entity.po.HotelProduct;
 import com.opensabre.admin.dao.entity.po.HotelProductSpec;
 import com.opensabre.admin.dao.entity.po.SysUser;
+import com.opensabre.admin.dao.mapper.HotelMapper;
 import com.opensabre.admin.dao.mapper.HotelTripMapper;
 import com.opensabre.admin.dao.mapper.SysUserMapper;
 import com.opensabre.admin.rpc.client.OrderFeignClient;
@@ -27,7 +29,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 酒店订单Controller - 下单、查看订单、取消订单
@@ -47,6 +51,9 @@ public class HotelOrderController {
 
     @Autowired
     private HotelTripMapper hotelTripMapper;
+
+    @Autowired
+    private HotelMapper hotelMapper;
 
     @Autowired
     private ProductFeignClient productFeignClient;
@@ -177,7 +184,7 @@ public class HotelOrderController {
     /**
      * 我的订单列表（通过 Feign 调用订单服务）
      */
-    @Operation(summary = "我的订单", description = "查询当前用户的订单列表")
+    @Operation(summary = "我的订单", description = "查询当前用户的订单列表，包含酒店名称")
     @GetMapping("/my")
     public Result<Object> myOrders(@RequestParam(required = false) String tripId) {
         String username = SecurityUtils.getCurrentUsername();
@@ -187,13 +194,33 @@ public class HotelOrderController {
         }
 
         Result<List<OrderDetailResponse>> result = orderFeignClient.listOrders(user.getId(), tripId);
-        return Result.success(result.getData());
+        if (result.isFail() || result.getData() == null) {
+            log.warn("[我的订单] Feign调用失败或无数据: userId={}, result={}", user.getId(), result.getMsg());
+            return Result.success(new ArrayList<>());
+        }
+
+        List<OrderDetailResponse> orders = result.getData();
+        log.info("[我的订单] 查询到 {} 条订单, userId={}", orders.size(), user.getId());
+
+        // 丰富订单数据：补充酒店名称
+        List<Map<String, Object>> enriched = new ArrayList<>();
+        for (OrderDetailResponse order : orders) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("order", order);
+            item.put("items", order.getItems() != null ? order.getItems() : new ArrayList<>());
+            // 查询酒店名称
+            Hotel hotel = hotelMapper.selectById(order.getHotelId());
+            item.put("hotelName", hotel != null ? hotel.getName() : "未知酒店");
+            item.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+            enriched.add(item);
+        }
+        return Result.success(enriched);
     }
 
     /**
      * 订单详情（通过 Feign 调用订单服务）
      */
-    @Operation(summary = "订单详情", description = "查询订单详情含明细")
+    @Operation(summary = "订单详情", description = "查询订单详情含明细和酒店信息")
     @GetMapping("/{id}")
     public Result<Object> detail(@PathVariable String id) {
         String username = SecurityUtils.getCurrentUsername();
@@ -203,10 +230,19 @@ public class HotelOrderController {
         }
 
         Result<OrderDetailResponse> result = orderFeignClient.getOrderDetail(id);
-        if (result.isFail()) {
+        if (result.isFail() || result.getData() == null) {
             return Result.fail("订单不存在");
         }
-        return Result.success(result.getData());
+
+        OrderDetailResponse order = result.getData();
+        // 丰富数据：补充酒店信息
+        Hotel hotel = hotelMapper.selectById(order.getHotelId());
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("order", order);
+        detail.put("items", order.getItems() != null ? order.getItems() : new ArrayList<>());
+        detail.put("hotelName", hotel != null ? hotel.getName() : "未知酒店");
+        detail.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+        return Result.success(detail);
     }
 
     /**

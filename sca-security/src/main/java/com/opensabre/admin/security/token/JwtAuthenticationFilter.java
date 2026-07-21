@@ -1,5 +1,6 @@
 package com.opensabre.admin.security.token;
 
+import com.opensabre.admin.common.util.UsernameContext;
 import com.opensabre.admin.security.config.SecurityProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -128,6 +129,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             context.setAuthentication(authentication);
 
+            // 8.1 设置用户上下文（供 PoMetaObjectHandler 审计字段填充）
+            UsernameContext.setUsername(username);
+
             // 9. 滑动窗口续期：检查Token剩余时间，不足时自动签发新Token
             handleSlidingWindowRenewal(token, username, response);
 
@@ -137,7 +141,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // 继续执行后续过滤器和业务逻辑
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            // 请求结束后清理用户上下文，防止 ThreadLocal 泄漏
+            UsernameContext.clear();
+        }
     }
 
     /**
