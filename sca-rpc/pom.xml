@@ -14,10 +14,10 @@
     <description>RPC远程调用 - OpenFeign客户端定义与配置</description>
 
     <dependencies>
-        <!-- 公共模块 -->
+        <!-- DAO层（Feign客户端使用PO实体类） -->
         <dependency>
             <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-common</artifactId>
+            <artifactId>sca-dao</artifactId>
         </dependency>
         <!-- OpenFeign -->
         <dependency>

@@ -4,7 +4,7 @@ import { showToast } from 'vant'
 import router from '@/router'
 
 const service: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/web/api',
   timeout: 15000
 })
 

@@ -2,9 +2,14 @@ package com.opensabre.admin.web.controller.hotel;
 
 import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.util.SecurityUtils;
-import com.opensabre.admin.dao.entity.po.*;
-import com.opensabre.admin.dao.mapper.*;
+import com.opensabre.admin.dao.entity.po.HotelTrip;
+import com.opensabre.admin.dao.entity.po.HotelProduct;
+import com.opensabre.admin.dao.entity.po.HotelProductSpec;
+import com.opensabre.admin.dao.entity.po.SysUser;
+import com.opensabre.admin.dao.mapper.HotelTripMapper;
+import com.opensabre.admin.dao.mapper.SysUserMapper;
 import com.opensabre.admin.rpc.client.OrderFeignClient;
+import com.opensabre.admin.rpc.client.ProductFeignClient;
 import com.opensabre.admin.rpc.client.StockFeignClient;
 import com.opensabre.admin.rpc.client.dto.OrderCancelRequest;
 import com.opensabre.admin.rpc.client.dto.OrderCreateRequest;
@@ -43,13 +48,7 @@ public class HotelOrderController {
     private HotelTripMapper hotelTripMapper;
 
     @Autowired
-    private HotelProductMapper hotelProductMapper;
-
-    @Autowired
-    private HotelProductSpecMapper hotelProductSpecMapper;
-
-    @Autowired
-    private HotelMapper hotelMapper;
+    private ProductFeignClient productFeignClient;
 
     @Autowired
     private SysUserMapper sysUserMapper;
@@ -88,18 +87,32 @@ public class HotelOrderController {
             return Result.fail("当前不在入住时间段内，无法下单");
         }
 
-        // ========== 构建库存扣减请求 ==========
+        // ========== 构建库存扣减请求（同时缓存商品/规格信息供后续构建订单使用） ==========
         List<StockDeductRequest.DeductItem> deductItems = new ArrayList<>();
+        List<HotelProduct> cachedProducts = new ArrayList<>();
+        List<HotelProductSpec> cachedSpecs = new ArrayList<>();
         for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
-            // 查询商品和规格（获取名称和价格，用于传给订单服务）
-            HotelProduct product = hotelProductMapper.selectById(item.getProductId());
-            if (product == null || product.getStatus() != 1) {
+            // Feign 调用库存服务查询商品和规格
+            Result<HotelProduct> productResult = productFeignClient.productInfo(item.getProductId());
+            if (productResult.isFail() || productResult.getData() == null) {
                 return Result.fail("商品不存在或已下架: " + item.getProductId());
             }
-            HotelProductSpec spec = hotelProductSpecMapper.selectById(item.getSpecId());
-            if (spec == null || !spec.getProductId().equals(item.getProductId())) {
+            HotelProduct product = productResult.getData();
+            if (product.getStatus() != 1) {
+                return Result.fail("商品已下架: " + item.getProductId());
+            }
+
+            Result<HotelProductSpec> specResult = productFeignClient.specInfo(item.getSpecId());
+            if (specResult.isFail() || specResult.getData() == null) {
                 return Result.fail("规格不存在: " + item.getSpecId());
             }
+            HotelProductSpec spec = specResult.getData();
+            if (!spec.getProductId().equals(item.getProductId())) {
+                return Result.fail("规格不属于该商品: " + item.getSpecId());
+            }
+
+            cachedProducts.add(product);
+            cachedSpecs.add(spec);
 
             StockDeductRequest.DeductItem deductItem = new StockDeductRequest.DeductItem();
             deductItem.setSpecId(item.getSpecId());
@@ -123,9 +136,10 @@ public class HotelOrderController {
         orderRequest.setTripId(request.getTripId());
 
         List<OrderCreateRequest.OrderItemRequest> orderItems = new ArrayList<>();
-        for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
-            HotelProduct product = hotelProductMapper.selectById(item.getProductId());
-            HotelProductSpec spec = hotelProductSpecMapper.selectById(item.getSpecId());
+        for (int i = 0; i < request.getItems().size(); i++) {
+            CreateOrderRequest.OrderItemRequest item = request.getItems().get(i);
+            HotelProduct product = cachedProducts.get(i);
+            HotelProductSpec spec = cachedSpecs.get(i);
 
             OrderCreateRequest.OrderItemRequest orderItem = new OrderCreateRequest.OrderItemRequest();
             orderItem.setProductId(item.getProductId());

@@ -41,11 +41,13 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 白名单路径判断
+     * 白名单路径判断（网关路径前缀为 /api/web/api/）
      */
     private boolean isWhiteListed(String path) {
-        return path.startsWith("/api/auth/login") ||
-               path.startsWith("/api/auth/register") ||
+        return path.contains("/api/auth/login") ||
+               path.contains("/api/auth/register") ||
+               path.contains("/api/auth/refresh") ||
+               path.contains("/api/health") ||
                path.startsWith("/actuator") ||
                path.startsWith("/swagger") ||
                path.startsWith("/v3/api-docs");

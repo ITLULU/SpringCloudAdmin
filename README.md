@@ -381,6 +381,26 @@ spring:
             - StripPrefix=1
 ```
 
+## 网关选型
+
+
+在 Spring Cloud Alibaba 生态中，网关选型有两个主要选项：
+
+| 对比项 | Spring Cloud Gateway | Higress (阿里新一代网关) |
+|--------|---------------------|-------------------------|
+| 本质 | 基于 Spring WebFlux + Netty | 基于 Envoy + Istio 的云原生网关 |
+| 语言 | Java | C++ (核心) + Java (插件) |
+| 定位 | Spring 生态标准网关 | K8s Ingress / 微服务网关二合一 |
+| 编程模型 | Reactive 响应式 | 声明式路由 + Wasm 插件 |
+| 与 Nacos 集成 | 需要 Spring Cloud LoadBalancer | 原生支持 Nacos 服务发现 |
+| 与 Seata 集成 | 无直接关联 | 无直接关联 |
+| 学习曲线 | 低（Spring 开发者熟悉） | 中（需要了解 K8s/Helm 概念） |
+| 社区成熟度 | 非常成熟，文档丰富 | 较新，但发展快 |
+
+
+
+
+
 ---
 
 ## 附录
