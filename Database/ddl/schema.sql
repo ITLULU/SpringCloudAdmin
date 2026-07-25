@@ -178,3 +178,26 @@ INSERT INTO sys_role_menu (id, role_id, menu_id) VALUES
 ('17', '2', '100'),
 ('18', '2', '101'),
 ('19', '2', '1001');
+
+
+-- =============================================
+-- Seata TCC 模式 DDL 扩展
+-- =============================================
+
+-- 1. 商品规格表新增冻结库存字段
+ALTER TABLE hotel_product_spec ADD COLUMN frozen_stock INT NOT NULL DEFAULT 0 COMMENT '冻结库存(TCC)';
+
+-- 2. 订单表新增 xid 字段（记录全局事务ID）
+ALTER TABLE hotel_order ADD COLUMN xid VARCHAR(128) DEFAULT NULL COMMENT 'Seata全局事务ID(TCC)';
+
+-- 3. TCC 库存冻结记录表
+CREATE TABLE IF NOT EXISTS tcc_stock_record (
+    id VARCHAR(64) NOT NULL COMMENT '主键ID',
+    xid VARCHAR(128) NOT NULL COMMENT '全局事务ID',
+    spec_id VARCHAR(64) NOT NULL COMMENT '规格ID',
+    quantity INT NOT NULL COMMENT '冻结数量',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '0=冻结 1=已确认 2=已取消',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (id),
+    KEY idx_xid (xid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='TCC库存冻结记录表';
