@@ -11,11 +11,11 @@ import java.util.List;
 public class OrderCancelRequest {
 
     private String orderId;
-    private List<StockRestoreItem> items;
-
-    @Data
-    public static class StockRestoreItem {
-        private String specId;
-        private Integer quantity;
-    }
+//    private List<StockRestoreItem> items;
+//
+//    @Data
+//    public static class StockRestoreItem {
+//        private String specId;
+//        private Integer quantity;
+//    }
 }

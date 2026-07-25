@@ -9,6 +9,8 @@ spring:
     username: ${mysql.user}
     password: ${mysql.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  main:
+    allow-bean-definition-overriding: true
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

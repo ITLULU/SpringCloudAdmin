@@ -148,7 +148,7 @@ async function handleCancel() {
       title: '确认取消',
       message: '取消订单后库存将自动归还，确定要取消吗？'
     })
-    await request.put(`/hotel/order/tcc/cancel/${orderId}`)
+    await request.put(`/hotel/order/cancel/${orderId}`)
     showToast('订单已取消，库存已归还')
     order.value.status = 0
   } catch (e: any) {
