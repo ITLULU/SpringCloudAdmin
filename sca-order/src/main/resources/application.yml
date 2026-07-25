@@ -2,6 +2,21 @@
 # sca-order 服务私有配置
 # 公共配置（datasource/mybatis/seata等）已由 Nacos 共享配置 sca-common.yml 提供
 # ==========================================
+#server:
+#  port: 8081
+#
+#spring:
+#  main:
+#    allow-bean-definition-overriding: true
+#  profiles:
+#    active: dev
+
+# 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
+#mysql:
+#  host: 47.116.45.17
+#  db: sca_order_db
+
+
 server:
   port: 8081
 
@@ -10,64 +25,64 @@ spring:
     allow-bean-definition-overriding: true
   profiles:
     active: dev
+  datasource:
+    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_order_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${mysql.user}
+    password: ${mysql.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 连接最大存活时间（毫秒），必须小于 MySQL 的 wait_timeout（默认 28800 秒 = 8 小时）
+      max-lifetime: 600000        # 10 分钟
+      # 连接空闲超时时间（毫秒），超过此时间的空闲连接将被回收
+      idle-timeout: 300000        # 5 分钟
+      # 连接池最小空闲连接数
+      minimum-idle: 5
+      # 连接池最大连接数
+      maximum-pool-size: 20
+      # 获取连接时的检测语句
+      connection-test-query: SELECT 1
+      # 获取连接超时时间（毫秒）
+      connection-timeout: 30000   # 30 秒
+      # 验证连接是否有效的超时时间（毫秒）
+      validation-timeout: 5000    # 5 秒
 
-# 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
-#mysql:
-#  host: 47.116.45.17
-#  db: sca_order_db
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
-#server:
-#  port: 8081
-
-#spring:
-#  main:
-#    allow-bean-definition-overriding: true
-#  profiles:
-#    active: dev
-#  datasource:
-#    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_order_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-#    username: ${mysql.user}
-#    password: ${mysql.password}
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#
-#mybatis-plus:
-#  mapper-locations: classpath*:mapper/**/*.xml
-#  global-config:
-#    db-config:
-#      id-type: ASSIGN_ID
-#  configuration:
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-#
-#springdoc:
-#  api-docs:
-#    path: /v3/api-docs
-#  swagger-ui:
-#    path: /swagger-ui.html
-#
-## Seata 分布式事务配置
-#seata:
-#  enabled: true
-#  application-id: ${spring.application.name}
-#  tx-service-group: default_tx_group
-#  service:
-#    vgroup-mapping:
-#      default_tx_group: default
-#  registry:
-#    type: nacos
-#    nacos:
-#      application: seata-server
-#      server-addr: 47.116.45.17:8848
-#      group: SEATA_GROUP
-#      namespace: ""
-#      username: ${nacos.username}
-#      password: ${nacos.password}
-#  config:
-#    type: nacos
-#    nacos:
-#      server-addr: 47.116.45.17:8848
-#      group: SEATA_GROUP
-#      namespace: ""
-#      data-id: seataServer.properties
-#      username: ${nacos.username}
-#      password: ${nacos.password}
+# Seata 分布式事务配置
+seata:
+  enabled: true
+  application-id: ${spring.application.name}
+  tx-service-group: default_tx_group
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: 47.116.45.17:8848
+      group: SEATA_GROUP
+      namespace: ""
+      username: ${nacos.username}
+      password: ${nacos.password}
+  config:
+    type: nacos
+    nacos:
+      server-addr: 47.116.45.17:8848
+      group: SEATA_GROUP
+      namespace: ""
+      data-id: seataServer.properties
+      username: ${nacos.username}
+      password: ${nacos.password}

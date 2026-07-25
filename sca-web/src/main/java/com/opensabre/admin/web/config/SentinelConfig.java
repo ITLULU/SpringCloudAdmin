@@ -3,9 +3,14 @@ package com.opensabre.admin.web.config;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.BlockExceptionHandler;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.UrlCleaner;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.exception.SystemErrorType;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +21,7 @@ import com.alibaba.csp.sentinel.adapter.spring.webmvc.SentinelWebInterceptor;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.config.SentinelWebMvcConfig;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -38,6 +43,34 @@ public class SentinelConfig implements WebMvcConfigurer {
      * RESTful 路径变量匹配：纯数字 或 UUID 格式（32位十六进制含连字符）
      */
     private static final Pattern PATH_VAR_PATTERN = Pattern.compile("^\\d+$|^[0-9a-fA-F\\-]{32,36}$");
+
+    /**
+     * 启动时打印已加载的 Sentinel 规则（从 Nacos 动态数据源拉取后）
+     */
+    @PostConstruct
+    public void printLoadedRules() {
+        // 延迟一点打印，确保 Nacos 数据源已加载
+        new Thread(() -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            List<FlowRule> flowRules = FlowRuleManager.getRules();
+            List<DegradeRule> degradeRules = DegradeRuleManager.getRules();
+            log.info("[Sentinel] 已加载限流规则 {} 条:", flowRules.size());
+            for (FlowRule rule : flowRules) {
+                log.info("  [Flow] resource={}, grade={}, count={}, strategy={}",
+                        rule.getResource(), rule.getGrade(), rule.getCount(), rule.getStrategy());
+            }
+            log.info("[Sentinel] 已加载熔断规则 {} 条:", degradeRules.size());
+            for (DegradeRule rule : degradeRules) {
+                log.info("  [Degrade] resource={}, grade={}, count={}, slowRatio={}, timeWindow={}",
+                        rule.getResource(), rule.getGrade(), rule.getCount(),
+                        rule.getSlowRatioThreshold(), rule.getTimeWindow());
+            }
+        }).start();
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

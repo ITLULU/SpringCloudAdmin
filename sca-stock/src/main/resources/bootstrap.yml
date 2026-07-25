@@ -8,6 +8,7 @@ spring:
         username: ${nacos.username}
         password: ${nacos.password}
       config:
+        refresh-enabled: false
         server-addr: 47.116.45.17:8848
         username: ${nacos.username}
         password: ${nacos.password}
@@ -15,7 +16,7 @@ spring:
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
         # 共享配置
-        shared-configs:
-          - data-id: sca-common.yml
-            group: SHARED_GROUP
-            refresh: true
+#        shared-configs:
+#          - data-id: sca-common.yml
+#            group: SHARED_GROUP
+#            refresh: false

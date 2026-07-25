@@ -34,6 +34,7 @@ spring:
         username: ${nacos.username}
         password: ${nacos.password}
       config:
+        refresh-enabled: false
         server-addr: 47.116.45.17:8848
         username: ${nacos.username}
         password: ${nacos.password}
@@ -44,7 +45,7 @@ spring:
         shared-configs:
           - data-id: sca-common.yml
             group: SHARED_GROUP
-            refresh: true
+            refresh: false
 #        extension-configs:
 #          - data-id: sca-web.yml
 #            group: EXTEND_GROUP
