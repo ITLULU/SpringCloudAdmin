@@ -34,6 +34,7 @@ seata:
       max-conn: 30
       global-table: global_table
       branch-table: branch_table
+      #分布式锁表
       distributed-lock-table: distributed_lock
       query-limit: 100
       lock-table: lock_table
