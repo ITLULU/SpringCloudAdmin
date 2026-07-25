@@ -28,4 +28,7 @@ public class ScaCommonAutoConfiguration {
         registration.setName("userContextFilter");
         return registration;
     }
+
+    // TccAtExcludeFilter 已移除：真正的 Seata TCC 需要 XID 保留在 RootContext
+    // 以便 TCC 代理注册分支到 TC。TCC 与 AT 共存时 AT undo_log 是无害的额外安全层。
 }

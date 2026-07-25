@@ -21,6 +21,9 @@ public class HotelOrder extends BasePo {
     /** 关联行程ID */
     private String tripId;
 
-    /** 状态：0-已取消 1-已完成 */
+    /** 状态：0-已取消 1-已完成 2-待确认(TCC) */
     private Integer status;
+
+    /** Seata全局事务ID(TCC) */
+    private String xid;
 }

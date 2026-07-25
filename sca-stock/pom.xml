@@ -19,6 +19,11 @@
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-dao</artifactId>
         </dependency>
+        <!-- RPC层（TCC服务接口定义） -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-rpc</artifactId>
+        </dependency>
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

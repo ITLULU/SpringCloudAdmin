@@ -23,4 +23,25 @@
         WHERE id = #{specId}
     </update>
 
+    <!-- TCC Try: 冻结库存 -->
+    <update id="freezeStock">
+        UPDATE hotel_product_spec
+        SET stock = stock - #{quantity}, frozen_stock = frozen_stock + #{quantity}
+        WHERE id = #{specId} AND stock >= #{quantity}
+    </update>
+
+    <!-- TCC Confirm: 确认扣减 -->
+    <update id="confirmFrozen">
+        UPDATE hotel_product_spec
+        SET frozen_stock = frozen_stock - #{quantity}
+        WHERE id = #{specId} AND frozen_stock >= #{quantity}
+    </update>
+
+    <!-- TCC Cancel: 释放冻结 -->
+    <update id="cancelFrozen">
+        UPDATE hotel_product_spec
+        SET stock = stock + #{quantity}, frozen_stock = frozen_stock - #{quantity}
+        WHERE id = #{specId} AND frozen_stock >= #{quantity}
+    </update>
+
 </mapper>

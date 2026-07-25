@@ -27,4 +27,19 @@ public interface HotelProductSpecMapper extends BaseMapper<HotelProductSpec> {
      * 归还库存
      */
     int restoreStock(@Param("specId") String specId, @Param("quantity") int quantity);
+
+    /**
+     * TCC Try: 冻结库存（stock减少，frozen_stock增加）
+     */
+    int freezeStock(@Param("specId") String specId, @Param("quantity") int quantity);
+
+    /**
+     * TCC Confirm: 确认扣减（frozen_stock减少）
+     */
+    int confirmFrozen(@Param("specId") String specId, @Param("quantity") int quantity);
+
+    /**
+     * TCC Cancel: 释放冻结（stock恢复，frozen_stock减少）
+     */
+    int cancelFrozen(@Param("specId") String specId, @Param("quantity") int quantity);
 }

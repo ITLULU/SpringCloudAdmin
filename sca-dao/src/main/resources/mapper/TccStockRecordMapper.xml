@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.opensabre.admin.dao.mapper.TccStockRecordMapper">
+
+    <!-- 根据xid查询冻结记录 -->
+    <select id="selectByXid" resultType="com.opensabre.admin.dao.entity.po.TccStockRecord">
+        SELECT * FROM tcc_stock_record
+        WHERE xid = #{xid}
+    </select>
+
+    <!-- 根据xid批量更新状态 -->
+    <update id="updateStatusByXid">
+        UPDATE tcc_stock_record
+        SET status = #{status}
+        WHERE xid = #{xid}
+    </update>
+
+    <!-- 删除已完成的记录（状态1=确认, 2=取消, 3=补偿，且超过指定小时数） -->
+    <delete id="deleteFinishedRecords">
+        DELETE FROM tcc_stock_record
+        WHERE status IN (1, 2, 3)
+        AND created_time <![CDATA[ <= ]]> DATE_SUB(NOW(), INTERVAL #{hours} HOUR)
+    </delete>
+
+</mapper>

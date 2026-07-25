@@ -16,4 +16,18 @@
         ORDER BY created_time DESC
     </select>
 
+    <!-- TCC Confirm: 根据xid确认订单 -->
+    <update id="confirmOrderByXid">
+        UPDATE hotel_order
+        SET status = 1
+        WHERE xid = #{xid} AND status = 2
+    </update>
+
+    <!-- TCC Cancel: 根据xid取消订单 -->
+    <update id="cancelOrderByXid">
+        UPDATE hotel_order
+        SET status = 0
+        WHERE xid = #{xid} AND status = 2
+    </update>
+
 </mapper>

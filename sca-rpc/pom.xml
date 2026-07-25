@@ -35,6 +35,13 @@
             <artifactId>spring-boot-starter-web</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Seata (TCC注解: @LocalTCC, @TwoPhaseBusinessAction) -->
+        <!-- 使用 spring-cloud-starter-alibaba-seata 与项目其他模块保持一致 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

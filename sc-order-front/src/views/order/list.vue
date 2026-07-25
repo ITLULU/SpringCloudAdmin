@@ -145,7 +145,7 @@ function totalQty(items: any[]) {
 async function handleCancel(orderId: string) {
   try {
     await showConfirmDialog({ title: '确认取消', message: '取消订单后库存将自动归还，确定要取消吗？' })
-    await request.put(`/hotel/order/cancel/${orderId}`)
+    await request.put(`/hotel/order/tcc/cancel/${orderId}`)
     showToast('订单已取消，库存已归还')
     fetchOrders()
   } catch (e: any) {

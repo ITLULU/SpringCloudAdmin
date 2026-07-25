@@ -126,7 +126,7 @@ async function handleOrder() {
   if (!canOrder.value) return
   orderLoading.value = true
   try {
-    await request.post('/hotel/order', {
+    await request.post('/hotel/order/tcc', {
       hotelId,
       tripId,
       items: [{

@@ -13,10 +13,13 @@ import com.opensabre.admin.dao.mapper.SysUserMapper;
 import com.opensabre.admin.rpc.client.OrderFeignClient;
 import com.opensabre.admin.rpc.client.ProductFeignClient;
 import com.opensabre.admin.rpc.client.StockFeignClient;
+import com.opensabre.admin.rpc.client.StockTccClient;
+import com.opensabre.admin.rpc.client.OrderTccClient;
 import com.opensabre.admin.rpc.client.dto.OrderCancelRequest;
 import com.opensabre.admin.rpc.client.dto.OrderCreateRequest;
 import com.opensabre.admin.rpc.client.dto.OrderDetailResponse;
 import com.opensabre.admin.rpc.client.dto.StockDeductRequest;
+import com.opensabre.admin.rpc.client.dto.StockFreezeRequest;
 import com.opensabre.admin.rpc.client.dto.StockRestoreRequest;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -66,6 +69,12 @@ public class HotelOrderController {
 
     @Autowired
     private StockFeignClient stockFeignClient;
+
+    @Autowired
+    private StockTccClient stockTccClient;
+
+    @Autowired
+    private OrderTccClient orderTccClient;
 
     /**
      * 创建订单
@@ -251,7 +260,7 @@ public class HotelOrderController {
      * 流程：Feign调用订单服务取消 → Feign调用库存服务归还库存
      * Seata启用后添加 @GlobalTransactional 保证分布式事务一致性
      */
-    // @io.seata.spring.annotation.GlobalTransactional(name = "cancel-order", rollbackFor = Exception.class)
+    @GlobalTransactional(name = "cancel-order", rollbackFor = Exception.class)
     @Operation(summary = "取消订单", description = "取消订单并归还库存")
     @PutMapping("/cancel/{id}")
     public Result<Object> cancel(@PathVariable String id) {
@@ -299,4 +308,120 @@ public class HotelOrderController {
         log.info("订单取消成功: orderId={}, userId={}", id, user.getId());
         return Result.success();
     }
+
+    // ==================== TCC 模式接口（Seata 真正两阶段提交） ====================
+
+    /**
+     * TCC 模式创建订单 - Seata 两阶段提交
+     * <p>
+     * 流程：
+     * 1. @GlobalTransactional 开启全局事务，Seata TC 分配 XID
+     * 2. Try: 冻结库存（Feign 调用，XID 自动注入 HTTP Header）
+     * 3. Try: 创建待确认订单
+     * 4. 方法正常返回 → TC 自动调度所有分支的 Confirm
+     * 方法抛出异常 → TC 自动调度所有分支的 Cancel
+     * <p>
+     * 无需手动调用 Confirm/Cancel，Seata TC 全自动协调。
+     */
+    @Operation(summary = "TCC创建订单", description = "Seata TCC两阶段提交：冻结库存→创建待确认订单→TC自动Confirm/Cancel")
+    @PostMapping("/tcc")
+    @GlobalTransactional(name = "tcc-create-order", rollbackFor = Exception.class)
+    public Result<Object> createByTcc(@Valid @RequestBody CreateOrderRequest request) {
+        String username = SecurityUtils.getCurrentUsername();
+        SysUser user = sysUserMapper.selectByUsername(username);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+
+        // 校验行程有效性
+        HotelTrip trip = hotelTripMapper.selectById(request.getTripId());
+        if (trip == null || !trip.getUserId().equals(user.getId()) || trip.getStatus() != 1) {
+            return Result.fail("行程无效");
+        }
+
+        // 校验当前是否在入住时间段内
+        HotelTrip activeTrip = hotelTripMapper.selectActiveTrip(user.getId(), request.getHotelId());
+        if (activeTrip == null) {
+            return Result.fail("当前不在入住时间段内，无法下单");
+        }
+
+        // 构建库存冻结请求 & 缓存商品信息
+        List<StockFreezeRequest.FreezeItem> freezeItems = new ArrayList<>();
+        List<HotelProduct> cachedProducts = new ArrayList<>();
+        List<HotelProductSpec> cachedSpecs = new ArrayList<>();
+        for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
+            Result<HotelProduct> productResult = productFeignClient.productInfo(item.getProductId());
+            if (productResult.isFail() || productResult.getData() == null) {
+                return Result.fail("商品不存在或已下架: " + item.getProductId());
+            }
+            HotelProduct product = productResult.getData();
+            if (product.getStatus() != 1) {
+                return Result.fail("商品已下架: " + item.getProductId());
+            }
+
+            Result<HotelProductSpec> specResult = productFeignClient.specInfo(item.getSpecId());
+            if (specResult.isFail() || specResult.getData() == null) {
+                return Result.fail("规格不存在: " + item.getSpecId());
+            }
+            HotelProductSpec spec = specResult.getData();
+            if (!spec.getProductId().equals(item.getProductId())) {
+                return Result.fail("规格不属于该商品: " + item.getSpecId());
+            }
+
+            cachedProducts.add(product);
+            cachedSpecs.add(spec);
+
+            StockFreezeRequest.FreezeItem freezeItem = new StockFreezeRequest.FreezeItem();
+            freezeItem.setSpecId(item.getSpecId());
+            freezeItem.setQuantity(item.getQuantity());
+            freezeItems.add(freezeItem);
+        }
+
+        // ========== Seata TCC: TM 只调用 Try，TC 自动调度 Confirm/Cancel ==========
+
+        // 1. Try: 冻结库存（XID 由 Seata 自动注入 Feign HTTP Header）
+        StockFreezeRequest freezeRequest = new StockFreezeRequest();
+        freezeRequest.setItems(freezeItems);
+        Result<Object> freezeResult = stockTccClient.tryFreeze(freezeRequest);
+        if (freezeResult.isFail()) {
+            throw new RuntimeException("库存冻结失败: " + freezeResult.getMsg());
+        }
+        log.info("[TCC] 库存冻结成功");
+
+        // 2. Try: 创建待确认订单
+        OrderCreateRequest orderRequest = new OrderCreateRequest();
+        orderRequest.setUserId(user.getId());
+        orderRequest.setHotelId(request.getHotelId());
+        orderRequest.setTripId(request.getTripId());
+
+        List<OrderCreateRequest.OrderItemRequest> orderItems = new ArrayList<>();
+        for (int i = 0; i < request.getItems().size(); i++) {
+            CreateOrderRequest.OrderItemRequest item = request.getItems().get(i);
+            HotelProduct product = cachedProducts.get(i);
+            HotelProductSpec spec = cachedSpecs.get(i);
+
+            OrderCreateRequest.OrderItemRequest orderItem = new OrderCreateRequest.OrderItemRequest();
+            orderItem.setProductId(item.getProductId());
+            orderItem.setSpecId(item.getSpecId());
+            orderItem.setProductName(product.getName());
+            orderItem.setSpecName(spec.getSpecName());
+            orderItem.setQuantity(item.getQuantity());
+            orderItem.setPrice(spec.getPrice() != null ? spec.getPrice() : BigDecimal.ZERO);
+            orderItems.add(orderItem);
+        }
+        orderRequest.setItems(orderItems);
+
+        Result<String> orderResult = orderTccClient.tryCreate(orderRequest);
+        if (orderResult.isFail()) {
+            throw new RuntimeException("订单创建失败: " + orderResult.getMsg());
+        }
+        String orderId = orderResult.getData();
+        log.info("[TCC] 订单创建成功: orderId={}", orderId);
+
+        // 3. 方法正常返回 → Seata TC 自动调度所有分支的 Confirm
+        //    方法抛出异常 → Seata TC 自动调度所有分支的 Cancel
+        //    无需手动 Confirm/Cancel！
+        return Result.success(orderId);
+    }
+
 }

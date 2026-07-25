@@ -26,6 +26,9 @@ public class HotelProductSpec extends BasePo {
     /** 库存数量 */
     private Integer stock;
 
+    /** 冻结库存(TCC) */
+    private Integer frozenStock;
+
     /** 规格价格（当前均为0） */
     private BigDecimal price;
 
