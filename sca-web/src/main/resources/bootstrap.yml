@@ -45,3 +45,7 @@ spring:
           - data-id: sca-common.yml
             group: SHARED_GROUP
             refresh: true
+        extension-configs:
+          - data-id: sca-common.yml
+            group: DEFAULT_GROUP
+            refresh: true
