@@ -2,6 +2,32 @@ spring:
   application:
     name: sca-web
   cloud:
+    # Sentinel 流控配置
+    sentinel:
+      transport:
+        dashboard: 47.116.45.17:8858
+        port: 8719
+      eager: false
+      # URL 清洗：合并 RESTful 路径变量（如 /api/hotel/order/123 → /api/hotel/order/{id}）
+      web-context-unify: true
+      # Nacos 动态数据源 —— 限流规则 + 熔断规则
+      datasource:
+        flow:
+          nacos:
+            server-addr: 47.116.45.17:8848
+            data-id: ${spring.application.name}-sentinel-flow
+            group-id: SENTINEL_GROUP
+            username: ${nacos.username}
+            password: ${nacos.password}
+            rule-type: flow
+        degrade:
+          nacos:
+            server-addr: 47.116.45.17:8848
+            data-id: ${spring.application.name}-sentinel-degrade
+            group-id: SENTINEL_GROUP
+            username: ${nacos.username}
+            password: ${nacos.password}
+            rule-type: degrade
     nacos:
       discovery:
         server-addr: 47.116.45.17:8848
@@ -14,3 +40,8 @@ spring:
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
+        # 共享配置（多个微服务共用的基础配置）
+        shared-configs:
+          - data-id: sca-common.yml
+            group: SHARED_GROUP
+            refresh: true

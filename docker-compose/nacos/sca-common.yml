@@ -1,0 +1,69 @@
+# ================================================================
+# Nacos 共享配置模板
+# ----------------------------------------------------------------
+# Data ID:  sca-common.yml
+# Group:    SHARED_GROUP
+# 格式:     YAML
+# ----------------------------------------------------------------
+# 在 Nacos 控制台 → 配置管理 → 配置列表 中创建：
+#   1. 点击 "配置管理" → "配置列表"
+#   2. 点击右侧 "+" 号新建配置
+#   3. Data ID 填: sca-common.yml
+#   4. Group 填: SHARED_GROUP（如不存在会自动创建）
+#   5. 配置格式选: YAML
+#   6. 将下方内容粘贴到配置内容中
+#   7. 点击 "发布"
+# ================================================================
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  datasource:
+    # 数据库名由各服务通过 mysql.db 参数覆盖，其余配置统一
+    url: jdbc:mysql://${mysql.host}:${mysql.port}/${mysql.db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${mysql.user}
+    password: ${mysql.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# MyBatis-Plus 统一配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# SpringDoc OpenAPI 文档配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Seata 分布式事务配置（application-id 使用 ${spring.application.name} 自动适配各服务）
+seata:
+  enabled: true
+  application-id: ${spring.application.name}
+  tx-service-group: default_tx_group
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: 47.116.45.17:8848
+      group: SEATA_GROUP
+      namespace: ""
+      username: ${nacos.username}
+      password: ${nacos.password}
+  config:
+    type: nacos
+    nacos:
+      server-addr: 47.116.45.17:8848
+      group: SEATA_GROUP
+      namespace: ""
+      data-id: seataServer.properties
+      username: ${nacos.username}
+      password: ${nacos.password}

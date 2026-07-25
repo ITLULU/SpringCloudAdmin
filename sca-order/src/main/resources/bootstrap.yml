@@ -14,3 +14,8 @@ spring:
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
+        # 共享配置
+        shared-configs:
+          - data-id: sca-common.yml
+            group: SHARED_GROUP
+            refresh: true

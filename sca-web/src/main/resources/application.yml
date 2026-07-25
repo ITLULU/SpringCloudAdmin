@@ -1,33 +1,23 @@
+# ==========================================
+# sca-web 服务私有配置
+# 公共配置（datasource/mybatis/seata等）已由 Nacos 共享配置 sca-common.yml 提供
+# ==========================================
 server:
   port: 8080
-
 
 spring:
   main:
     allow-bean-definition-overriding: true
   profiles:
     active: dev
-  datasource:
-    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: ${mysql.user}
-    password: ${mysql.password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
 
-mybatis-plus:
-  mapper-locations: classpath*:mapper/**/*.xml
-  global-config:
-    db-config:
-      id-type: ASSIGN_ID
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+# 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
+mysql:
+  host: 47.116.45.17
+  db: sca_db
 
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
 
-# 安全配置
+# 安全配置（仅 sca-web 需要）
 security:
   jwt:
     secret: SpringCloudAdmin-Secret-Key-2024-Must-Be-At-Least-32-Chars
@@ -63,35 +53,102 @@ logging:
     # Feign内部日志引擎
     feign: DEBUG
 
-# Seata 分布式事务配置
-seata:
-  enabled: true
-  application-id: ${spring.application.name}
-  #事务分组名 逻辑事务分组，一个分组对应一个 TC 集群
-  tx-service-group: default_tx_group
-  service:
-    vgroup-mapping:
-      #分组 → 集群映射
-      default_tx_group: default
-  registry:
-    type: nacos
-    nacos:
-      #要查找的 TC 服务名
-      application: seata-server
-      server-addr: 47.116.45.17:8848
-      #TC 注册的分组
-      group: SEATA_GROUP
-      namespace: ""
-      username: ${nacos.username}
-      password: ${nacos.password}
-  config:
-    type: nacos
-    #从 Nacos 读取 TC 的配置（如超时时间、重试策略等）
-    nacos:
-      server-addr: 47.116.45.17:8848
-      group: SEATA_GROUP
-      namespace: ""
-      # 远程配置文件名
-      data-id: seataServer.properties
-      username: ${nacos.username}
-      password: ${nacos.password}
+
+
+#server:
+#  port: 8080
+#
+#
+#spring:
+#  main:
+#    allow-bean-definition-overriding: true
+#  profiles:
+#    active: dev
+#  datasource:
+#    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+#    username: ${mysql.user}
+#    password: ${mysql.password}
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#
+#mybatis-plus:
+#  mapper-locations: classpath*:mapper/**/*.xml
+#  global-config:
+#    db-config:
+#      id-type: ASSIGN_ID
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#
+#springdoc:
+#  api-docs:
+#    path: /v3/api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#
+## 安全配置
+#security:
+#  jwt:
+#    secret: SpringCloudAdmin-Secret-Key-2024-Must-Be-At-Least-32-Chars
+#    expiration: 86400000  # AccessToken过期时间：24小时（毫秒）
+#  # Token续期策略配置
+#  renewal:
+#    # 续期模式：none(不续期) / refresh-token(双Token) / sliding-window(滑动窗口)
+#    mode: none
+#    # RefreshToken过期时间：1天（毫秒），仅refresh-token模式生效
+#    refresh-token-expiration: 86400000
+#    # 滑动窗口阈值：0.33表示剩余不足1/3时自动续期，仅sliding-window模式生效
+#    sliding-window-threshold: 0.33
+#  # 放行路径配置（不需要登录即可访问的接口）
+#  permit-urls:
+#    - /api/auth/login
+#    - /api/auth/register
+#    - /api/auth/refresh
+#    - /api/hotel/list
+#    - /api/hotel/product/list
+#    - /api/hotel/product/{id}
+#    - /api/health
+#    - /actuator/**
+#    - /swagger-ui/**
+#    - /swagger-ui.html
+#    - /v3/api-docs/**
+#    - /error
+#
+## 开发环境日志配置
+#logging:
+#  level:
+#    # Feign调用日志（BASIC级别：请求方法/URL/响应状态码/耗时）
+#    com.opensabre.admin.rpc.client: DEBUG
+#    # Feign内部日志引擎
+#    feign: DEBUG
+#
+## Seata 分布式事务配置
+#seata:
+#  enabled: true
+#  application-id: ${spring.application.name}
+#  #事务分组名 逻辑事务分组，一个分组对应一个 TC 集群
+#  tx-service-group: default_tx_group
+#  service:
+#    vgroup-mapping:
+#      #分组 → 集群映射
+#      default_tx_group: default
+#  registry:
+#    type: nacos
+#    nacos:
+#      #要查找的 TC 服务名
+#      application: seata-server
+#      server-addr: 47.116.45.17:8848
+#      #TC 注册的分组
+#      group: SEATA_GROUP
+#      namespace: ""
+#      username: ${nacos.username}
+#      password: ${nacos.password}
+#  config:
+#    type: nacos
+#    #从 Nacos 读取 TC 的配置（如超时时间、重试策略等）
+#    nacos:
+#      server-addr: 47.116.45.17:8848
+#      group: SEATA_GROUP
+#      namespace: ""
+#      # 远程配置文件名
+#      data-id: seataServer.properties
+#      username: ${nacos.username}
+#      password: ${nacos.password}

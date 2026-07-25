@@ -16,8 +16,10 @@ public enum SystemErrorType implements ErrorType {
     FORBIDDEN(1005, "权限不足，拒绝访问"),
     TOKEN_EXPIRED(1006, "Token已过期"),
     TOKEN_INVALID(1007, "Token无效"),
-    USER_NOT_FOUND(1005, "用户不存在"),
-    PASSWORD_ERROR(1006, "密码错误");
+    USER_NOT_FOUND(1008, "用户不存在"),
+    PASSWORD_ERROR(1009, "密码错误"),
+    RATE_LIMIT(1010, "请求过于频繁，请稍后重试"),
+    RESOURCE_NOT_FOUND(1011, "资源未找到");
 
     private final Integer code;
     private final String mesg;

@@ -1,54 +1,71 @@
+# ==========================================
+# sca-stock 服务私有配置
+# 公共配置（datasource/mybatis/seata等）已由 Nacos 共享配置 sca-common.yml 提供
+# ==========================================
 server:
   port: 8082
 
 spring:
-  profiles:
-    active: dev
-  datasource:
-    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_stock_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: ${mysql.user}
-    password: ${mysql.password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
   main:
     allow-bean-definition-overriding: true
+  profiles:
+    active: dev
+# 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
+mysql:
+  host: 47.116.45.17
+  db: sca_stock_db
 
-mybatis-plus:
-  mapper-locations: classpath*:mapper/**/*.xml
-  global-config:
-    db-config:
-      id-type: ASSIGN_ID
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-# Seata 分布式事务配置
-seata:
-  enabled: true
-  application-id: ${spring.application.name}
-  tx-service-group: default_tx_group
-  service:
-    vgroup-mapping:
-      default_tx_group: default
-  registry:
-    type: nacos
-    nacos:
-      application: seata-server
-      server-addr: 47.116.45.17:8848
-      group: SEATA_GROUP
-      namespace: ""
-      username: ${nacos.username}
-      password: ${nacos.password}
-  config:
-    type: nacos
-    nacos:
-      server-addr: 47.116.45.17:8848
-      group: SEATA_GROUP
-      namespace: ""
-      data-id: seataServer.properties
-      username: ${nacos.username}
-      password: ${nacos.password}
+#server:
+#  port: 8082
+#
+#spring:
+#  profiles:
+#    active: dev
+#  datasource:
+#    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_stock_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+#    username: ${mysql.user}
+#    password: ${mysql.password}
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#  main:
+#    allow-bean-definition-overriding: true
+#
+#mybatis-plus:
+#  mapper-locations: classpath*:mapper/**/*.xml
+#  global-config:
+#    db-config:
+#      id-type: ASSIGN_ID
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#
+#springdoc:
+#  api-docs:
+#    path: /v3/api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#
+## Seata 分布式事务配置
+#seata:
+#  enabled: true
+#  application-id: ${spring.application.name}
+#  tx-service-group: default_tx_group
+#  service:
+#    vgroup-mapping:
+#      default_tx_group: default
+#  registry:
+#    type: nacos
+#    nacos:
+#      application: seata-server
+#      server-addr: 47.116.45.17:8848
+#      group: SEATA_GROUP
+#      namespace: ""
+#      username: ${nacos.username}
+#      password: ${nacos.password}
+#  config:
+#    type: nacos
+#    nacos:
+#      server-addr: 47.116.45.17:8848
+#      group: SEATA_GROUP
+#      namespace: ""
+#      data-id: seataServer.properties
+#      username: ${nacos.username}
+#      password: ${nacos.password}
