@@ -1,0 +1,29 @@
+services:
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.8
+    container_name: sentinel-dashboard
+    restart: unless-stopped
+    ports:
+      - "8858:8858"
+    environment:
+      - TZ=Asia/Shanghai
+      # JVM 参数
+      - JAVA_OPTS=-Xms128m -Xmx256m
+    # 启动参数：指定端口、用户名密码
+    command: >
+      --server.port=8858
+      --sentinel.dashboard.auth.username=sentinel
+      --sentinel.dashboard.auth.password=sentinel123
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8858/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network

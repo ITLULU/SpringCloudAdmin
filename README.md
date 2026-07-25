@@ -268,6 +268,64 @@ CREATE TABLE IF NOT EXISTS undo_log (
 
 ---
 
+## seata
+
+## Seata XA 模式使用方式
+
+XA 模式是 Seata 对数据库原生两阶段提交协议的封装，**与 AT 模式使用方式几乎完全一致**，核心区别在于事务控制机制不同。
+
+与 AT 模式对比
+
+| 对比项 | AT 模式 | XA 模式 |
+|--------|---------|---------|
+| **一阶段** | 业务 SQL 提交 + 生成 undo_log | 业务 SQL 执行但**不提交**，数据库层锁定 |
+| **二阶段** | 根据 undo_log 补偿/反向 SQL | 数据库层 XA COMMIT / XA ROLLBACK |
+| **隔离性** | 读未提交（一阶段已提交） | 可串行化（一阶段未提交，行锁持有） |
+| **性能** | 高（无数据库层锁等待） | 低（数据库连接被长时间占用） |
+| **侵入性** | 零侵入 | 零侵入 |
+| **适用场景** | 大多数业务场景 | 对隔离性要求极高的金融级场景 |
+
+### 使用方式
+
+**代码层面完全一样**，只需在入口方法加 `@GlobalTransactional`：
+
+```java
+@GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
+public Result<Object> create(CreateOrderRequest request) {
+    // 业务代码与 AT 模式完全一致
+    stockFeignClient.deductStock(deductRequest);
+    orderFeignClient.createOrder(orderRequest);
+    return Result.success();
+}
+```
+
+**唯一的区别在配置**，需要切换数据源代理模式。以 `sca-stock` 为例：
+
+```yaml
+seata:
+  enabled: true
+  data-source-proxy-mode: XA   # 关键配置：从 AT 切换到 XA
+```
+
+当前项目的 AT 模式配置中没有指定 `data-source-proxy-mode`，默认就是 `AT`。加上 `XA` 即可切换。
+
+### 当前项目为什么不需要 XA
+
+你的项目已经用了 **TCC 模式**（下单流程），TCC 的优势是：
+- 一阶段就提交本地事务，不长时间占用数据库连接
+- 业务层自定义预留/确认/释放逻辑，灵活性更高
+
+XA 模式的劣势是数据库连接被锁定到二阶段结束，高并发下连接池容易耗尽。**TCC 性能远优于 XA**。
+
+总结
+
+```
+AT 模式：零侵入，undo_log 补偿，适合大多数场景（当前项目 AT 接口用这个）
+XA 模式：零侵入，数据库层两阶段，隔离性强但性能差（金融级场景）
+TCC 模式：需写 Try/Confirm/Cancel，性能最好，灵活性最高（当前项目下单流程用这个）
+```
+
+
 ## 依赖管理
 
 所有依赖版本统一由根 `pom.xml` 的 `<dependencyManagement>` 集中管理，子模块只需声明依赖名称，无需指定版本号。
