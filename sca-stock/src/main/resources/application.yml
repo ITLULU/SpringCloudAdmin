@@ -11,9 +11,9 @@ spring:
   profiles:
     active: dev
 # 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
-mysql:
-  host: 47.116.45.17
-  db: sca_stock_db
+#mysql:
+#  host: 47.116.45.17
+#  db: sca_stock_db
 
 #server:
 #  port: 8082
