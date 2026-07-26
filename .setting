@@ -2,7 +2,6 @@ reids ：
 ```
 host: 192.168.235.128
 name:root
-password:huang1020
 ```
 
 
@@ -10,7 +9,6 @@ mysql:
 ```
 host: 192.168.235.128
 name:website
-password:website1020
 ```
 
 
@@ -18,7 +16,6 @@ nacos ：
 ```
 host: 192.168.235.128
 name:nacos
-password:nacos
 ```
 
 kafka ：

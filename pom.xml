@@ -21,6 +21,7 @@
         <module>sca-es</module>
         <module>sca-order</module>
         <module>sca-stock</module>
+        <module>sca-datasync</module>
     </modules>
 
     <name>SpringCloudAdmin</name>
