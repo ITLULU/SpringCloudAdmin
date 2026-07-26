@@ -1,5 +1,42 @@
 [
   {
+    "resource": "/api/hotel/order",
+    "grade": 1,
+    "count": 10,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "/api/hotel/order/tcc",
+    "grade": 1,
+    "count": 10,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "/api/sentinel/test/flow",
+    "grade": 1,
+    "count": 5,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "/api/sentinel/test/flow/strict",
+    "grade": 1,
+    "count": 1,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  }
+]
+
+
+/**
+[
+  {
     "resource": "createOrder",
     "grade": 1,
     "count": 10,
@@ -16,3 +53,4 @@
     "clusterMode": false
   }
 ]
+ **/
