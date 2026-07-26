@@ -1,0 +1,150 @@
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: es01
+    restart: unless-stopped
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - TZ=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/es01:/usr/share/elasticsearch/data
+      - ./logs/es01:/usr/share/elasticsearch/logs
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: es02
+    restart: unless-stopped
+    environment:
+      - node.name=es02
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es01,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - TZ=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/es02:/usr/share/elasticsearch/data
+      - ./logs/es02:/usr/share/elasticsearch/logs
+    ports:
+      - "9201:9200"
+      - "9301:9300"
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: es03
+    restart: unless-stopped
+    environment:
+      - node.name=es03
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - TZ=Asia/Shanghai
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/es03:/usr/share/elasticsearch/data
+      - ./logs/es03:/usr/share/elasticsearch/logs
+    ports:
+      - "9202:9200"
+      - "9302:9300"
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es01:9200,http://es02:9200,http://es03:9200
+      # 注意：Elasticsearch 已禁用 xpack.security，Kibana 无需认证即可连接
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=min-32-byte-long-encryption-key-here
+      - I18N_LOCALE=zh-CN
+      - TZ=Asia/Shanghai
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=5601
+      - MONITORING_UI_CONTAINER_ELASTICSEARCH_ENABLED=true
+    ports:
+      - "5601:5601"
+    networks:
+      - my-custom-network
+    depends_on:
+      es01:
+        condition: service_healthy
+      es02:
+        condition: service_healthy
+      es03:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q 'available' || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network
