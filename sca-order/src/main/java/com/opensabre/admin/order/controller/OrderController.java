@@ -8,6 +8,7 @@ import com.opensabre.admin.dao.mapper.HotelOrderMapper;
 import com.opensabre.admin.order.dto.OrderCancelRequest;
 import com.opensabre.admin.order.dto.OrderCreateRequest;
 import com.opensabre.admin.order.dto.OrderDetailResponse;
+import com.opensabre.admin.order.service.OrderEventPublisher;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,6 +34,9 @@ public class OrderController {
 
     @Autowired
     private HotelOrderItemMapper hotelOrderItemMapper;
+
+    @Autowired
+    private OrderEventPublisher orderEventPublisher;
 
     /**
      * 创建订单
@@ -77,6 +81,9 @@ public class OrderController {
 
         log.info("[订单服务] 订单创建成功: orderId={}, userId={}", order.getId(), request.getUserId());
 
+        // 发送订单创建事件到 Kafka，同步到 ES（只发送 orderId）
+        orderEventPublisher.publishOrderCreate(order.getId());
+
         // 构建响应
         OrderDetailResponse response = new OrderDetailResponse();
         response.setId(order.getId());
@@ -106,8 +113,12 @@ public class OrderController {
             return Result.fail("订单已取消");
         }
 
+        Integer oldStatus = order.getStatus();
         order.setStatus(0);
         hotelOrderMapper.updateById(order);
+
+        // 发送订单状态变更事件到 Kafka，同步到 ES（只发送 orderId）
+        orderEventPublisher.publishOrderStatusChange(order.getId());
 
         log.info("[订单服务] 订单取消成功: orderId={}", request.getOrderId());
         return Result.success();

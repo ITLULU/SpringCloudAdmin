@@ -10,26 +10,31 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>sca-order</artifactId>
-    <description>订单微服务 - 订单创建、查询、取消，支持Seata分布式事务</description>
+    <artifactId>sca-datasync</artifactId>
+    <description>数据同步服务 - 消费 Kafka 消息同步到 Elasticsearch</description>
 
     <dependencies>
+        <!-- 公共模块 -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-common</artifactId>
+        </dependency>
+        <!-- DAO层：sca-datasync 需要根据 orderId 查询订单主表和明细 -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-dao</artifactId>
+        </dependency>
         <!-- 统一全局异常与配置 -->
         <dependency>
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-config</artifactId>
         </dependency>
-        <!-- DAO层（复用PO和Mapper） -->
+        <!-- Elasticsearch 检索层 -->
         <dependency>
             <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-dao</artifactId>
+            <artifactId>sca-es</artifactId>
         </dependency>
-        <!-- RPC层（TCC服务接口定义） -->
-        <dependency>
-            <groupId>com.opensabre.admin</groupId>
-            <artifactId>sca-rpc</artifactId>
-        </dependency>
-        <!-- Spring Web -->
+        <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -39,17 +44,12 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
-        <!-- Validation -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <!-- Nacos服务发现 -->
+        <!-- Nacos 服务发现 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
-        <!-- Nacos配置中心 -->
+        <!-- Nacos 配置中心 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
@@ -59,21 +59,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-        <!-- SpringDoc OpenAPI -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        </dependency>
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <!-- Seata 分布式事务 -->
-        <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
         </dependency>
         <!-- 测试 -->
         <dependency>

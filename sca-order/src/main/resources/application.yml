@@ -45,6 +45,8 @@ spring:
       connection-timeout: 30000   # 30 秒
       # 验证连接是否有效的超时时间（毫秒）
       validation-timeout: 5000    # 5 秒
+  kafka:
+    bootstrap-servers: 47.116.45.17:9092
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -86,3 +88,9 @@ seata:
       data-id: seataServer.properties
       username: ${nacos.username}
       password: ${nacos.password}
+
+# Kafka Topic 配置
+kafka:
+  topic:
+    order-create: topic-order-create
+    order-status-change: topic-order-status-change

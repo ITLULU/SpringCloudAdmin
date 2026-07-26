@@ -1,0 +1,42 @@
+# ==========================================
+# sca-datasync 服务私有配置
+# ==========================================
+server:
+  port: 8084
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: dev
+  kafka:
+    bootstrap-servers: 47.116.45.17:9092
+    consumer:
+      group-id: sca-datasync-group
+  datasource:
+    url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_order_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${mysql.user}
+    password: ${mysql.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      max-lifetime: 600000
+      idle-timeout: 300000
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-test-query: SELECT 1
+      connection-timeout: 30000
+      validation-timeout: 5000
+  elasticsearch:
+    uris: http://localhost:9200
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+
+# Kafka Topic 配置
+kafka:
+  topic:
+    order-create: topic-order-create
+    order-status-change: topic-order-status-change
