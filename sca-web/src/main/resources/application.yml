@@ -38,6 +38,8 @@ security:
     - /api/hotel/list
     - /api/hotel/product/list
     - /api/hotel/product/{id}
+    # Sentinel 限流测试接口（免登录，便于测试）
+    - /api/sentinel/test/**
     - /api/health
     - /actuator/**
     - /swagger-ui/**

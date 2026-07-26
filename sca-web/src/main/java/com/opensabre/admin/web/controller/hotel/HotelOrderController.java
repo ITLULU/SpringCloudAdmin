@@ -22,7 +22,6 @@ import com.opensabre.admin.rpc.client.dto.StockDeductRequest;
 import com.opensabre.admin.rpc.client.dto.StockFreezeRequest;
 import com.opensabre.admin.rpc.client.dto.StockRestoreRequest;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
-import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import io.seata.spring.annotation.GlobalTransactional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -84,7 +83,7 @@ public class HotelOrderController {
      * Seata @GlobalTransactional 保证分布式事务一致性，任一步骤失败自动回滚所有分支事务
      */
     @GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
-    @SentinelResource(value = "createOrder")
+//    @SentinelResource(value = "createOrder")
     @Operation(summary = "创建订单", description = "下单购买商品，需要入住状态，扣减规格库存")
     @PostMapping
     public Result<Object> create(@Valid @RequestBody CreateOrderRequest request) {
@@ -328,7 +327,7 @@ public class HotelOrderController {
     @Operation(summary = "TCC创建订单", description = "Seata TCC两阶段提交：冻结库存→创建待确认订单→TC自动Confirm/Cancel")
     @PostMapping("/tcc")
     @GlobalTransactional(name = "tcc-create-order", rollbackFor = Exception.class)
-    @SentinelResource(value = "tccCreateOrder")
+//    @SentinelResource(value = "tccCreateOrder")
     public Result<Object> createByTcc(@Valid @RequestBody CreateOrderRequest request) {
         String username = SecurityUtils.getCurrentUsername();
         SysUser user = sysUserMapper.selectByUsername(username);

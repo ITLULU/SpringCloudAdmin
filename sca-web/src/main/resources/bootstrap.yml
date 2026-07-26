@@ -7,7 +7,9 @@ spring:
       transport:
         dashboard: 47.116.45.17:8858
         port: 8719
-      eager: false
+    #eager: false	懒加载	Sentinel 拦截器在第一次请求时才初始化，导致 @SentinelResource 的 AOP 切面不生效，限流规则加载了但不触发
+    #eager: true	立即初始化	启动时就初始化 Sentinel，AOP 切面生效，限流规则正常触发
+      eager: true
       # URL 清洗：合并 RESTful 路径变量（如 /api/hotel/order/123 → /api/hotel/order/{id}）
       web-context-unify: true
       # Nacos 动态数据源 —— 限流规则 + 熔断规则
@@ -50,3 +52,15 @@ spring:
 #          - data-id: sca-web.yml
 #            group: EXTEND_GROUP
 #            refresh: true
+feign:
+  sentinel:
+    enabled: true   #开启sentinel对feign的支持 默认false
+    enable-refresh-rules: true
+
+
+#暴露actuator端点   http://localhost:8800/actuator/sentinel
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'

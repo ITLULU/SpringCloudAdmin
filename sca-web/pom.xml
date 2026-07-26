@@ -14,6 +14,11 @@
     <description>Web接口层 - REST Controller与Swagger文档</description>
 
     <dependencies>
+        <!-- 统一全局异常与配置 -->
+        <dependency>
+            <groupId>com.opensabre.admin</groupId>
+            <artifactId>sca-config</artifactId>
+        </dependency>
         <!-- Service层 -->
         <dependency>
             <groupId>com.opensabre.admin</groupId>
