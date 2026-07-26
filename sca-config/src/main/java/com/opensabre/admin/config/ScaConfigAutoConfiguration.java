@@ -1,8 +1,8 @@
-package com.opensabre.admin.common;
+package com.opensabre.admin.config;
 
-import com.opensabre.admin.common.entity.GlobalExceptionHandlerAdvice;
 import com.opensabre.admin.common.entity.RestResponseBodyAdvice;
 import com.opensabre.admin.common.filter.UserContextFilter;
+import com.opensabre.admin.config.exception.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
 /**
- * 公共模块自动配置 - 注入全局异常处理、响应体包装、用户上下文过滤器
+ * 公共模块自动配置 - 注入响应体包装、用户上下文过滤器
  */
 @AutoConfiguration
-@Import({GlobalExceptionHandlerAdvice.class, RestResponseBodyAdvice.class})
-public class ScaCommonAutoConfiguration {
+@Import({RestResponseBodyAdvice.class,GlobalExceptionHandler.class})
+public class ScaConfigAutoConfiguration {
 
     /**
      * 注册用户上下文过滤器 - 从 Feign Header 读取 X-Username
