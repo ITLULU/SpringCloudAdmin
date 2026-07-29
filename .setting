@@ -8,7 +8,7 @@ name:root
 mysql:
 ```
 host: 192.168.235.128
-name:website
+name:{username}
 ```
 
 
@@ -28,4 +28,3 @@ gatweay ：
 host: 192.168.235.128
 ```
 
--Dmysql.user=website -Dmysql.password=website1020 -Dmysql.port=13306 -Dnacos.password=nacos -Dnacos.username=nacos

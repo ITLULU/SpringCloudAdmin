@@ -124,8 +124,8 @@ store.db.datasource=druid
 store.db.dbType=mysql
 store.db.driverClassName=com.mysql.cj.jdbc.Driver
 store.db.url=jdbc:mysql://mysql8:3306/seata?useUnicode=true&rewriteBatchedStatements=true&serverTimezone=Asia/Shanghai
-store.db.user=website
-store.db.password=website1020
+store.db.user=#
+store.db.password=#
 store.db.minConn=5
 store.db.maxConn=30
 store.db.globalTable=global_table

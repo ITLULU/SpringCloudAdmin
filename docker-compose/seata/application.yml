@@ -28,8 +28,8 @@ seata:
       db-type: mysql
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://mysql8:3306/seata?useUnicode=true&rewriteBatchedStatements=true&serverTimezone=Asia/Shanghai
-      user: website
-      password: website1020
+      user: {username}
+      password: {password}
       min-conn: 5
       max-conn: 30
       global-table: global_table
