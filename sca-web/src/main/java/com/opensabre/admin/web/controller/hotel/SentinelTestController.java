@@ -1,6 +1,7 @@
 package com.opensabre.admin.web.controller.hotel;
 
 import com.opensabre.admin.common.entity.Result;
+import com.opensabre.admin.common.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -93,6 +94,32 @@ public class SentinelTestController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("message", "来源校验通过，请求成功");
+        data.put("time", time);
+        return Result.success(data);
+    }
+
+    /**
+     * 测试接口 - URL 资源: /api/sentinel/test/userflow（用户维度限流/防刷）
+     * <p>
+     * 在 Nacos 中配置用户限流规则:
+     * data-id: sca-web-sentinel-userflow
+     * group: SENTINEL_GROUP
+     * 内容: [{"resource":"/api/sentinel/test/userflow","countPerUser":3,"windowSeconds":10}]
+     * <p>
+     * 验证方式（需携带登录 Token 以识别用户）:
+     * 同一用户 10 秒内请求第 4 次 → 429 + code 1012；换另一用户的 Token → 不受影响；
+     * 不带 Token（匿名）→ 不受用户限流约束
+     */
+    @GetMapping("/userflow")
+    @Operation(summary = "测试用户维度限流", description = "单用户窗口内超限返回429+1012，需携带Token识别用户")
+    public Result<Object> testUserFlow() {
+        String username = SecurityUtils.getCurrentUsername();
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+        log.info("[SentinelTest] 用户限流接口请求通过, user={}, 时间={}", username, time);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("message", "用户限流校验通过，请求成功");
+        data.put("username", username == null ? "匿名（不受用户限流约束）" : username);
         data.put("time", time);
         return Result.success(data);
     }

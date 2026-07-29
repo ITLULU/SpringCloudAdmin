@@ -1,0 +1,42 @@
+[
+  {
+    "resource": "/api/hotel/order",
+    "countPerUser": 5,
+    "windowSeconds": 60
+  },
+  {
+    "resource": "/api/hotel/order/tcc",
+    "countPerUser": 5,
+    "windowSeconds": 60
+  },
+  {
+    "resource": "/api/sentinel/test/userflow",
+    "countPerUser": 3,
+    "windowSeconds": 10
+  }
+]
+
+
+/**
+用户维度限流规则（自定义 UserFlowSlot，防刷）说明：
+
+Nacos 配置：
+  data-id: sca-web-sentinel-userflow
+  group:   SENTINEL_GROUP
+  格式:    JSON
+
+字段说明：
+  resource       受保护的 URL 资源（与限流规则一致，RESTful 路径变量写 {id}）
+  countPerUser   单个登录用户在一个窗口内允许的最大请求次数
+  windowSeconds  窗口长度（秒）
+
+机制说明：
+  自定义 UserFlowSlot（SPI 注册，order=-2500，位于 AuthoritySlot 之后、FlowSlot 之前）
+  从 SecurityContext 获取当前登录用户名，按 (resource, username) 固定窗口计数，
+  超限抛 UserFlowException，返回 429 + code 1012（操作过于频繁，请稍后再试）。
+  未登录/匿名请求不受此规则约束（登录校验由 Spring Security 负责）。
+  设计文档参见项目根目录《Sentinel自定义UserFlowSlot设计与实现.md》。
+
+测试（同一用户 Token 连续请求 4 次，第 4 次 429）：
+  curl -H "Authorization: Bearer $TOKEN" -H "originSource: sc-web" http://localhost:8080/api/sentinel/test/userflow
+ **/

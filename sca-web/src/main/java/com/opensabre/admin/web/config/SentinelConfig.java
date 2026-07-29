@@ -16,6 +16,9 @@ import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opensabre.admin.common.entity.Result;
 import com.opensabre.admin.common.exception.SystemErrorType;
+import com.opensabre.admin.web.sentinel.UserFlowException;
+import com.opensabre.admin.web.sentinel.UserFlowRule;
+import com.opensabre.admin.web.sentinel.UserFlowRuleManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,6 +50,8 @@ import java.util.regex.Pattern;
  * 3. 授权规则（来源访问控制）：通过 RequestOriginParser 从请求头 originSource 解析调用来源，
  *    配合 Nacos 授权规则（strategy=0 白名单）只放行 limitApp 中声明的来源（如 sc-web），
  *    其它来源请求被 AuthorityException 拦截，返回 403 + code 1005。
+ * 4. 用户维度限流（防刷）：自定义 UserFlowSlot（SPI 注册，order=-2500）按 (资源, 用户名) 窗口计数，
+ *    规则由 SentinelUserFlowConfig 接入 Nacos（sca-web-sentinel-userflow），超限返回 429 + code 1012。
  */
 @Slf4j
 @Configuration
@@ -101,13 +106,20 @@ public class SentinelConfig  implements WebMvcConfigurer {
                         rule.getResource(), rule.getStrategy(),
                         rule.getStrategy() == 0 ? "白名单" : "黑名单", rule.getLimitApp());
             }
+            List<UserFlowRule> userFlowRules = UserFlowRuleManager.getRules();
+            log.info("[Sentinel] 已加载用户限流规则 {} 条:", userFlowRules.size());
+            for (UserFlowRule rule : userFlowRules) {
+                log.info("  [UserFlow] resource={}, countPerUser={}, windowSeconds={}",
+                        rule.getResource(), rule.getCountPerUser(), rule.getWindowSeconds());
+            }
         }).start();
     }
 
     /**
      * 全局 BlockExceptionHandler：
      * 1. 授权规则拦截（来源不在白名单）→ 403 + code 1005
-     * 2. 限流/熔断 → 429 + code 1010
+     * 2. 用户维度限流（单用户超限）→ 429 + code 1012
+     * 3. 限流/熔断 → 429 + code 1010
      * <p>
      * 由 SentinelWebAutoConfiguration 自动注入到 SentinelWebInterceptor
      */
@@ -121,6 +133,11 @@ public class SentinelConfig  implements WebMvcConfigurer {
                         request.getRequestURI(), request.getHeader(ORIGIN_HEADER), ex.getRule());
                 response.setStatus(403);
                 response.getWriter().write(objectMapper.writeValueAsString(Result.fail(SystemErrorType.FORBIDDEN)));
+            } else if (ex instanceof UserFlowException userFlowEx) {
+                log.warn("[Sentinel] 用户维度限流触发: uri={}, user={}, rule={}",
+                        request.getRequestURI(), userFlowEx.getUsername(), ex.getRule());
+                response.setStatus(429);
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail(SystemErrorType.USER_RATE_LIMIT)));
             } else {
                 log.warn("[Sentinel] URL资源被限流/熔断: uri={}, rule={}", request.getRequestURI(), ex.getRule());
                 response.setStatus(429);
