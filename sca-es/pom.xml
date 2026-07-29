@@ -19,10 +19,19 @@
             <groupId>com.opensabre.admin</groupId>
             <artifactId>sca-common</artifactId>
         </dependency>
-        <!-- Spring Data Elasticsearch -->
+        <!-- Spring Data Elasticsearch（含官方 Elasticsearch Java API Client） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+        </dependency>
+        <!-- Jackson（ElasticsearchClient 的 JsonpMapper 序列化与 LocalDateTime 支持） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         <!-- Spring Boot AutoConfiguration -->
         <dependency>

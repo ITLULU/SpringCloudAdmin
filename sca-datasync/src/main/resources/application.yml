@@ -10,6 +10,7 @@ spring:
   profiles:
     active: dev
   kafka:
+    # 单 broker 接入（docker-compose/kafka 为单节点）；集群接入时逗号分隔多地址
     bootstrap-servers: 47.116.45.17:9092
     consumer:
       group-id: sca-datasync-group
@@ -27,7 +28,9 @@ spring:
       connection-timeout: 30000
       validation-timeout: 5000
   elasticsearch:
-    uris: http://localhost:9200
+    # 单节点接入；集群接入（docker-compose-cluster.yml 启动 es01/02/03）时改为逗号分隔多地址，
+    # 客户端自动负载均衡与故障转移，如：http://host:9200,http://host:9201,http://host:9202
+    uris: http://47.116.45.17:9200
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

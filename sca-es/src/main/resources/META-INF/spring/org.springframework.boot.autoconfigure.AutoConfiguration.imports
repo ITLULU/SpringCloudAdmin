@@ -1,1 +1,2 @@
 com.opensabre.admin.es.config.ElasticsearchConfig
+com.opensabre.admin.es.config.ElasticsearchClientConfig
