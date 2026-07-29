@@ -37,6 +37,7 @@ Sentinel 1.8.6 通过 `@Spi(order=...)` + `META-INF/services/com.alibaba.csp.sen
 | ClusterBuilderSlot | -9000 | 构建集群节点 |
 | LogSlot | -8000 | 日志 |
 | StatisticSlot | -7000 | 指标统计 |
+| **BlockAuditSlot（自定义，观测型）** | **-6500** | **拦截事件审计（见第 8 章）** |
 | AuthoritySlot | -6000 | 来源授权（originSource） |
 | SystemSlot | -5000 | 系统保护 |
 | ParamFlowSlot | -3000 | 热点参数限流（本项目未启用规则） |
@@ -182,3 +183,90 @@ done
 - **内存**：计数器条目数 ≈ 活跃用户数 × 受保护资源数，条目仅含长整型与计数器，配合 5 分钟过期清理，可忽略。
 - **集群**：计数为单节点内存态。当前 sca-web 单实例部署下即全局精确；将来多实例时阈值近似为 `countPerUser × 实例数`（网关轮询摊薄），如需精确集群限流可演进为 Redis 窗口计数，规则模型不变。
 - **规则热更新**：Nacos 长轮询推送，`UserFlowRuleManager` 原子替换规则表，无需重启。
+
+## 8. 扩展二：拦截事件审计 BlockAuditSlot（观测型）
+
+在 Slot 链中再挂一个**观测型 Slot**，把限流/熔断/授权拦截事件（谁、什么时候、哪个接口、
+命中哪条规则）异步推到 Kafka → ES，复用项目已有的 sca-datasync / sca-es 基础设施。
+它不改变流控行为，任何环节失败都 fail-open，风险为零。
+
+### 8.1 编排位置：为什么在拦截型 Slot 之前（order = -6500）
+
+直觉上"审计拦截事件"应挂在链末尾，但 BlockException 是从下游 Slot **沿调用栈向上抛**的，
+链末尾的 Slot 根本抓不到它。正确做法与内置 LogSlot(-8000) 相同：把自己放在拦截型 Slot
+**之前**，对 `fireEntry` 做 try-catch，捕获后记录事件再原样抛出：
+
+- order = **-6500**：在 StatisticSlot(-7000) 之后、AuthoritySlot(-6000) 之前；
+- 可覆盖下游全部拦截型 Slot：Authority(-6000) / System(-5000) / ParamFlow(-3000) /
+  **UserFlow(-2500)** / Flow(-2000) / Degrade(-1000)；
+- 只 catch `BlockException` 并原样 rethrow，业务异常不经过审计逻辑。
+
+### 8.2 事件链路
+
+```mermaid
+sequenceDiagram
+    participant S as BlockAuditSlot(-6500)
+    participant Q as 有界队列(1024)
+    participant P as 守护线程 sender
+    participant K as Kafka(topic-sentinel-block)
+    participant D as sca-datasync
+    participant E as ES(sentinel_block_index)
+    S->>S: catch BlockException，提取 资源/类型/用户/来源/规则
+    S->>Q: offer（非阻塞，满则丢弃）
+    S-->>S: throw e（拦截语义不变）
+    P->>Q: poll
+    P->>K: BaseMessage<SentinelBlockMessage>
+    K->>D: @KafkaListener 消费（手动 ack）
+    D->>E: save（messageId 作文档ID，幂等）
+```
+
+异步隔离细节：Slot 线程只做非阻塞 `offer`，Kafka 发送由守护线程 `sentinel-block-audit-sender`
+完成；生产者 `max.block.ms=3000` 快速失败，Kafka 宕机时最多积压 1024 条后静默丢弃，
+业务请求链路零感知。
+
+### 8.3 事件模型
+
+Kafka 消息复用项目统一信封 `BaseMessage<SentinelBlockMessage>`（eventType = `SENTINEL_BLOCK`）：
+
+| 字段 | 说明 | 示例 |
+|---|---|---|
+| app | 触发拦截的服务名 | sca-web |
+| resource | 被拦截的 URL 资源 | /api/hotel/order |
+| blockType | 拦截类型 | FLOW / DEGRADE / AUTHORITY / USER_FLOW / PARAM_FLOW / SYSTEM |
+| username | 登录用户名（匿名为 null） | zhangsan |
+| origin | 调用来源（originSource 解析结果） | sc-web / unknown |
+| ruleInfo | 命中规则 toString | UserFlowRule(resource=..., countPerUser=5...) |
+| blockTime | 拦截时间戳（毫秒） | 1753772400000 |
+
+ES 索引 `sentinel_block_index`：全 Keyword 字段 + blockTime Date，天然适合按用户/接口/类型
+聚合分析（"最近 24h 被限流最多的用户 TOP10"一个 terms 聚合即可）。
+
+### 8.4 代码清单
+
+| 文件 | 说明 |
+|---|---|
+| `sca-common/.../message/EventType.java` | 新增 `SENTINEL_BLOCK` 事件类型 |
+| `sca-common/.../message/SentinelBlockMessage.java` | 审计消息体（生产/消费两端共用） |
+| `sca-web/.../web/sentinel/BlockAuditSlot.java` | 观测型 Slot（@Spi(order=-6500)，try-catch fireEntry） |
+| `sca-web/.../web/sentinel/BlockAuditEventPublisher.java` | 静态桥接 + 有界队列 + 守护线程发 Kafka |
+| `sca-web/.../web/config/KafkaProducerConfig.java` | Kafka 生产者（与 sca-order 同构，额外 max.block.ms=3000） |
+| `sca-web/pom.xml` / `application.yml` | 新增 spring-kafka 依赖与 bootstrap-servers/topic 配置 |
+| `META-INF/services/...ProcessorSlot` | 追加 BlockAuditSlot 注册行 |
+| `sca-es/.../document/SentinelBlockDocument.java` | ES 文档（sentinel_block_index） |
+| `sca-es/.../repository/SentinelBlockDocumentRepository.java` | ES Repository |
+| `sca-datasync/.../listener/SentinelBlockAuditListener.java` | Kafka 消费 → 写 ES（messageId 幂等） |
+
+### 8.5 验证步骤
+
+1. 启动 Kafka（`docker-compose/kafka`）、ES（`docker-compose/es`）、sca-web、sca-datasync；
+2. 按第 6 节方式触发一次用户限流（或去掉 originSource 头触发授权拦截）；
+3. sca-web 日志出现拦截告警，sca-datasync 日志出现 `拦截审计已写入 ES`；
+4. 查询验证：`GET http://<es>:9200/sentinel_block_index/_search?q=blockType:USER_FLOW`。
+
+### 8.6 边界与风险
+
+- **零侵入**：只读拦截信息，异常原样抛出；审计内部任何异常（含 Kafka 不可用）只记日志；
+- **丢弃策略**：审计属旁路数据，队列满/发送失败直接丢，不重试不落盘（与订单事件的可靠性要求不同）；
+- **幂等**：sca-datasync 重复消费时 messageId 作为 ES 文档 ID，重复写入仅覆盖自身；
+- **后续可选**：sc-admin-front 增加审计页面（需 sca-web 新增 ES 查询接口 + 菜单/RBAC 配置），作为独立迭代。
+

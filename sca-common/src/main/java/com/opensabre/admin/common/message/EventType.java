@@ -14,7 +14,10 @@ public enum EventType {
     ORDER_CREATE("ORDER_CREATE", "订单创建事件"),
 
     /** 订单状态变更 */
-    ORDER_STATUS_CHANGE("ORDER_STATUS_CHANGE", "订单状态变更事件");
+    ORDER_STATUS_CHANGE("ORDER_STATUS_CHANGE", "订单状态变更事件"),
+
+    /** Sentinel 拦截事件（限流/熔断/授权拦截审计） */
+    SENTINEL_BLOCK("SENTINEL_BLOCK", "Sentinel拦截审计事件");
 
     /** 事件类型编码 */
     private final String code;

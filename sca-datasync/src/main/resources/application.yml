@@ -40,3 +40,5 @@ kafka:
   topic:
     order-create: topic-order-create
     order-status-change: topic-order-status-change
+    # Sentinel 拦截审计事件（来自 sca-web BlockAuditSlot）
+    sentinel-block: topic-sentinel-block

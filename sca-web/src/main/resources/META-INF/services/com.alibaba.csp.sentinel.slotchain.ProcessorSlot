@@ -1,1 +1,2 @@
 com.opensabre.admin.web.sentinel.UserFlowSlot
+com.opensabre.admin.web.sentinel.BlockAuditSlot

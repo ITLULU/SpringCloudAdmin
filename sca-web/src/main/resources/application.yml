@@ -10,6 +10,13 @@ spring:
     allow-bean-definition-overriding: true
   profiles:
     active: dev
+  kafka:
+    bootstrap-servers: 47.116.45.17:9092
+
+# Kafka Topic 配置（Sentinel 拦截审计事件，由 sca-datasync 消费写入 ES）
+kafka:
+  topic:
+    sentinel-block: topic-sentinel-block
 
 # 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
 #mysql:
