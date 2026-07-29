@@ -8,10 +8,14 @@ spring:
         username: ${nacos.username}
         password: ${nacos.password}
       config:
-        refresh-enabled: false
         server-addr: 47.116.45.17:8848
         username: ${nacos.username}
         password: ${nacos.password}
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
+        # 共享配置：所有服务公共配置（MySQL/Redis/MyBatis等）
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true

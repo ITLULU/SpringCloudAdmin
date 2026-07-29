@@ -23,25 +23,8 @@ spring:
     active: dev
   datasource:
     url: jdbc:mysql://47.116.45.17:${mysql.port}/sca_stock_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: ${mysql.user}
-    password: ${mysql.password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
   main:
     allow-bean-definition-overriding: true
-
-mybatis-plus:
-  mapper-locations: classpath*:mapper/**/*.xml
-  global-config:
-    db-config:
-      id-type: ASSIGN_ID
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
 
 # Seata 分布式事务配置
 seata:

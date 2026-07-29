@@ -22,6 +22,7 @@ import com.opensabre.admin.rpc.client.dto.StockDeductRequest;
 import com.opensabre.admin.rpc.client.dto.StockFreezeRequest;
 import com.opensabre.admin.rpc.client.dto.StockRestoreRequest;
 import com.opensabre.admin.web.controller.hotel.request.CreateOrderRequest;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import io.seata.spring.annotation.GlobalTransactional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

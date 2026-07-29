@@ -43,6 +43,11 @@ spring:
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
+        # 共享配置：所有服务公共配置（MySQL/Redis/MyBatis等）
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
         # 共享配置（多个微服务共用的基础配置）
         shared-configs:
           - data-id: sca-common.yml
