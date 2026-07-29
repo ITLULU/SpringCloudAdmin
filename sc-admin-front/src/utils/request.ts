@@ -30,13 +30,15 @@ let isRefreshing = false
  */
 let pendingRequests: Array<(token: string) => void> = []
 
-// 请求拦截器 - 自动携带 Token
+// 请求拦截器 - 自动携带 Token 与请求来源标识
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // 请求来源标识：后端 Sentinel 授权规则据此放行（白名单 sc-web）
+    config.headers.originSource = 'sc-web'
     return config
   },
   (error) => {

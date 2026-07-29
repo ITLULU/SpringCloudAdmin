@@ -12,7 +12,7 @@ spring:
       eager: true
       # URL 清洗：合并 RESTful 路径变量（如 /api/hotel/order/123 → /api/hotel/order/{id}）
       web-context-unify: true
-      # Nacos 动态数据源 —— 限流规则 + 熔断规则
+      # Nacos 动态数据源 —— 限流规则 + 熔断规则 + 授权规则
       datasource:
         flow:
           nacos:
@@ -30,6 +30,15 @@ spring:
             username: ${nacos.username}
             password: ${nacos.password}
             rule-type: degrade
+        # 授权规则：来源访问控制，配合 SentinelConfig 中的 RequestOriginParser（请求头 originSource）
+        authority:
+          nacos:
+            server-addr: 47.116.45.17:8848
+            data-id: ${spring.application.name}-sentinel-authority
+            group-id: SENTINEL_GROUP
+            username: ${nacos.username}
+            password: ${nacos.password}
+            rule-type: authority
     nacos:
       discovery:
         server-addr: 47.116.45.17:8848

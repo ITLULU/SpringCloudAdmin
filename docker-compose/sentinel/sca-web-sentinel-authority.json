@@ -1,0 +1,40 @@
+[
+  {
+    "resource": "/api/hotel/order",
+    "limitApp": "sc-web",
+    "strategy": 0
+  },
+  {
+    "resource": "/api/hotel/order/tcc",
+    "limitApp": "sc-web",
+    "strategy": 0
+  },
+  {
+    "resource": "/api/sentinel/test/auth",
+    "limitApp": "sc-web",
+    "strategy": 0
+  }
+]
+
+
+/**
+授权规则（来源访问控制）说明：
+
+Nacos 配置：
+  data-id: sca-web-sentinel-authority
+  group:   SENTINEL_GROUP
+  格式:    JSON
+
+字段说明：
+  resource  受保护的 URL 资源（与限流规则一致，RESTful 路径变量写 {id}）
+  limitApp  来源白名单/黑名单，多个来源用英文逗号分隔，如 "sc-web,sc-admin"
+  strategy  0=白名单（仅 limitApp 中的来源放行），1=黑名单（limitApp 中的来源拒绝）
+
+来源解析：
+  sca-web 的 SentinelConfig#sentinelRequestOriginParser 从请求头 originSource 读取来源，
+  未携带该请求头按 unknown 处理（白名单模式下直接被拒），被拦截返回 403 + code 1005。
+
+测试：
+  curl -H "originSource: sc-web" http://localhost:8080/api/sentinel/test/auth   → 200
+  curl http://localhost:8080/api/sentinel/test/auth                             → 403
+ **/

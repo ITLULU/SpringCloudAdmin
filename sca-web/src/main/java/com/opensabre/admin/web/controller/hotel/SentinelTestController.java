@@ -74,6 +74,30 @@ public class SentinelTestController {
     }
 
     /**
+     * 测试接口 - URL 资源: /api/sentinel/test/auth（授权规则/来源访问控制）
+     * <p>
+     * 在 Nacos 中配置授权规则:
+     * data-id: sca-web-sentinel-authority
+     * group: SENTINEL_GROUP
+     * 内容: [{"resource":"/api/sentinel/test/auth","limitApp":"sc-web","strategy":0}]
+     * <p>
+     * 验证方式:
+     * 携带请求头 originSource: sc-web → 请求成功；
+     * 不带请求头或其它值（如 originSource: postman）→ 403 + code 1005
+     */
+    @GetMapping("/auth")
+    @Operation(summary = "测试授权规则", description = "仅请求头 originSource=sc-web 的请求可访问，其它来源返回403")
+    public Result<Object> testAuthority() {
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+        log.info("[SentinelTest] 授权接口请求通过, 时间={}", time);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("message", "来源校验通过，请求成功");
+        data.put("time", time);
+        return Result.success(data);
+    }
+
+    /**
      * 重置计数器
      */
     @GetMapping("/reset")

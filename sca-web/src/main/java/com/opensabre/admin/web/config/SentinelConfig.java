@@ -2,9 +2,13 @@ package com.opensabre.admin.web.config;
 
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.SentinelWebInterceptor;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.BlockExceptionHandler;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.RequestOriginParser;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.UrlCleaner;
 import com.alibaba.csp.sentinel.adapter.spring.webmvc.config.SentinelWebMvcConfig;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.authority.AuthorityException;
+import com.alibaba.csp.sentinel.slots.block.authority.AuthorityRule;
+import com.alibaba.csp.sentinel.slots.block.authority.AuthorityRuleManager;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
@@ -39,7 +43,10 @@ import java.util.regex.Pattern;
  * 1. 此处只声明 BlockExceptionHandler / UrlCleaner 两个 Bean，
  *    由 starter 的 SentinelWebAutoConfiguration 自动注入到它注册的拦截器中；
  *    切勿再手动 addInterceptors 注册 SentinelWebInterceptor，否则同一请求被拦截两次，QPS 统计翻倍。
- * 2. 限流/熔断规则全部由 Nacos 动态数据源推送（bootstrap.yml 中 datasource.flow/degrade）。
+ * 2. 限流/熔断/授权规则全部由 Nacos 动态数据源推送（bootstrap.yml 中 datasource.flow/degrade/authority）。
+ * 3. 授权规则（来源访问控制）：通过 RequestOriginParser 从请求头 originSource 解析调用来源，
+ *    配合 Nacos 授权规则（strategy=0 白名单）只放行 limitApp 中声明的来源（如 sc-web），
+ *    其它来源请求被 AuthorityException 拦截，返回 403 + code 1005。
  */
 @Slf4j
 @Configuration
@@ -51,6 +58,16 @@ public class SentinelConfig  implements WebMvcConfigurer {
      * RESTful 路径变量匹配：纯数字 或 UUID 格式（32位十六进制含连字符）
      */
     private static final Pattern PATH_VAR_PATTERN = Pattern.compile("^\\d+$|^[0-9a-fA-F\\-]{32,36}$");
+
+    /**
+     * 请求来源标识的请求头字段名
+     */
+    private static final String ORIGIN_HEADER = "originSource";
+
+    /**
+     * 未携带来源头时的默认来源（授权白名单中不包含它，即默认拒绝）
+     */
+    private static final String UNKNOWN_ORIGIN = "unknown";
 
     /**
      * 启动时打印已加载的 Sentinel 规则（从 Nacos 动态数据源拉取后）
@@ -66,6 +83,7 @@ public class SentinelConfig  implements WebMvcConfigurer {
             }
             List<FlowRule> flowRules = FlowRuleManager.getRules();
             List<DegradeRule> degradeRules = DegradeRuleManager.getRules();
+            List<AuthorityRule> authorityRules = AuthorityRuleManager.getRules();
             log.info("[Sentinel] 已加载限流规则 {} 条:", flowRules.size());
             for (FlowRule rule : flowRules) {
                 log.info("  [Flow] resource={}, grade={}, count={}, strategy={}",
@@ -77,22 +95,52 @@ public class SentinelConfig  implements WebMvcConfigurer {
                         rule.getResource(), rule.getGrade(), rule.getCount(),
                         rule.getSlowRatioThreshold(), rule.getTimeWindow());
             }
+            log.info("[Sentinel] 已加载授权规则 {} 条:", authorityRules.size());
+            for (AuthorityRule rule : authorityRules) {
+                log.info("  [Authority] resource={}, strategy={}({}), limitApp={}",
+                        rule.getResource(), rule.getStrategy(),
+                        rule.getStrategy() == 0 ? "白名单" : "黑名单", rule.getLimitApp());
+            }
         }).start();
     }
 
     /**
-     * 全局 BlockExceptionHandler：URL 资源被限流/熔断时统一返回 429 + code 1010
+     * 全局 BlockExceptionHandler：
+     * 1. 授权规则拦截（来源不在白名单）→ 403 + code 1005
+     * 2. 限流/熔断 → 429 + code 1010
      * <p>
      * 由 SentinelWebAutoConfiguration 自动注入到 SentinelWebInterceptor
      */
     @Bean
     public BlockExceptionHandler sentinelBlockExceptionHandler() {
         return (request, response, ex) -> {
-            log.warn("[Sentinel] URL资源被限流/熔断: uri={}, rule={}", request.getRequestURI(), ex.getRule());
-            response.setStatus(429);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(objectMapper.writeValueAsString(Result.fail(SystemErrorType.RATE_LIMIT)));
+            if (ex instanceof AuthorityException) {
+                log.warn("[Sentinel] 请求来源被授权规则拦截: uri={}, origin={}, rule={}",
+                        request.getRequestURI(), request.getHeader(ORIGIN_HEADER), ex.getRule());
+                response.setStatus(403);
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail(SystemErrorType.FORBIDDEN)));
+            } else {
+                log.warn("[Sentinel] URL资源被限流/熔断: uri={}, rule={}", request.getRequestURI(), ex.getRule());
+                response.setStatus(429);
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail(SystemErrorType.RATE_LIMIT)));
+            }
+        };
+    }
+
+    /**
+     * 全局 RequestOriginParser：从请求头 originSource 解析调用来源
+     * <p>
+     * 由 SentinelWebAutoConfiguration 自动注入到 SentinelWebInterceptor。
+     * 解析出的 origin 与 Nacos 授权规则（rule-type: authority）中的 limitApp 匹配：
+     * strategy=0 白名单 → 仅 limitApp 中的来源放行；未携带该请求头的按 unknown 处理，直接被拒。
+     */
+    @Bean
+    public RequestOriginParser sentinelRequestOriginParser() {
+        return request -> {
+            String origin = request.getHeader(ORIGIN_HEADER);
+            return (origin == null || origin.isBlank()) ? UNKNOWN_ORIGIN : origin.trim();
         };
     }
 
