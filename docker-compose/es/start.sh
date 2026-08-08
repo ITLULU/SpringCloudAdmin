@@ -37,6 +37,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   sudo chown -R 1000:0 ./data/es ./logs/es
 fi
 
+# 构建含 IK 中文分词插件的自定义镜像（首次或 Dockerfile 变更时需要）
+echo "构建含 IK 分词插件的 ES 镜像（首次构建需下载插件，请耐心等待）..."
+docker-compose build
+
 docker-compose up -d
 
 echo ""

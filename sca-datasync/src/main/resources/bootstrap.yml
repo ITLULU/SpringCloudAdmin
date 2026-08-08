@@ -5,12 +5,12 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848
-        username: ${nacos.username}
-        password: ${nacos.password}
+        username: nacos
+        password: nacos
       config:
         server-addr: localhost:8848
-        username: ${nacos.username}
-        password: ${nacos.password}
+        username: nacos
+        password: nacos
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}
