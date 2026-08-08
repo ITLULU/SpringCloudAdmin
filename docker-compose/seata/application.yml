@@ -1,3 +1,20 @@
+server:
+  port: 7091
+
+spring:
+  application:
+    name: seata-server
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    path: ${log.path:${user.home}/logs/seata}
+
+console:
+  user:
+    username: seata
+    password: seata
+
 seata:
   config:
     # support: nacos, consul, apollo, zk, etcd3
@@ -28,8 +45,8 @@ seata:
       db-type: mysql
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://mysql8:3306/seata?useUnicode=true&rewriteBatchedStatements=true&serverTimezone=Asia/Shanghai
-      user: {username}
-      password: {password}
+      user: root
+      password: root
       min-conn: 5
       max-conn: 30
       global-table: global_table
