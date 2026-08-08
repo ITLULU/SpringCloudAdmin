@@ -5,7 +5,7 @@ spring:
     # Sentinel 流控配置
     sentinel:
       transport:
-        dashboard: 47.116.45.17:8858
+        dashboard: localhost:8858
         port: 8719
     #eager: false	懒加载	Sentinel 拦截器在第一次请求时才初始化，导致 @SentinelResource 的 AOP 切面不生效，限流规则加载了但不触发
     #eager: true	立即初始化	启动时就初始化 Sentinel，AOP 切面生效，限流规则正常触发
@@ -16,7 +16,7 @@ spring:
       datasource:
         flow:
           nacos:
-            server-addr: 47.116.45.17:8848
+            server-addr: localhost:8848
             data-id: ${spring.application.name}-sentinel-flow
             group-id: SENTINEL_GROUP
             username: ${nacos.username}
@@ -24,7 +24,7 @@ spring:
             rule-type: flow
         degrade:
           nacos:
-            server-addr: 47.116.45.17:8848
+            server-addr: localhost:8848
             data-id: ${spring.application.name}-sentinel-degrade
             group-id: SENTINEL_GROUP
             username: ${nacos.username}
@@ -33,7 +33,7 @@ spring:
         # 授权规则：来源访问控制，配合 SentinelConfig 中的 RequestOriginParser（请求头 originSource）
         authority:
           nacos:
-            server-addr: 47.116.45.17:8848
+            server-addr: localhost  :8848
             data-id: ${spring.application.name}-sentinel-authority
             group-id: SENTINEL_GROUP
             username: ${nacos.username}
@@ -41,12 +41,12 @@ spring:
             rule-type: authority
     nacos:
       discovery:
-        server-addr: 47.116.45.17:8848
+        server-addr: localhost:8848
         username: ${nacos.username}
         password: ${nacos.password}
       config:
         refresh-enabled: false
-        server-addr: 47.116.45.17:8848
+        server-addr: localhost:8848
         username: ${nacos.username}
         password: ${nacos.password}
         file-extension: yml
@@ -57,8 +57,6 @@ spring:
           - data-id: common-config.yml
             group: DEFAULT_GROUP
             refresh: true
-        # 共享配置（多个微服务共用的基础配置）
-        shared-configs:
           - data-id: sca-common.yml
             group: SHARED_GROUP
             refresh: false

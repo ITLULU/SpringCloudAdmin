@@ -11,7 +11,7 @@ spring:
   profiles:
     active: dev
   kafka:
-    bootstrap-servers: 47.116.45.17:9092
+    bootstrap-servers: localhost:9092
 
 # Kafka Topic 配置（Sentinel 拦截审计事件，由 sca-datasync 消费写入 ES）
 kafka:
