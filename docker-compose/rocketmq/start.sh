@@ -18,12 +18,11 @@ if ! docker network inspect my-custom-network >/dev/null 2>&1; then
 fi
 
 echo "[2/2] 创建数据目录并启动..."
-mkdir -p ./namesrv/logs ./broker/logs ./broker/store
+# RocketMQ 5.x 会在 logs 下额外创建 rocketmqlogs 子目录，需预先创建并赋权
+mkdir -p ./namesrv/logs/rocketmqlogs ./broker/logs/rocketmqlogs ./broker/store
 
-# 赋予挂载目录写权限，避免容器内 Permission denied
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  sudo chmod -R 777 ./namesrv ./broker
-fi
+# 赋予挂载目录完全权限，避免容器内无法创建子目录/写日志
+chmod -R 777 ./namesrv ./broker 2>/dev/null || sudo chmod -R 777 ./namesrv ./broker
 
 docker-compose up -d
 
