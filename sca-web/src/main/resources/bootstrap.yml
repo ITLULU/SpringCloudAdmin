@@ -19,16 +19,16 @@ spring:
             server-addr: localhost:8848
             data-id: ${spring.application.name}-sentinel-flow
             group-id: SENTINEL_GROUP
-            username: ${nacos.username}
-            password: ${nacos.password}
+            username: nacos
+            password: nacos
             rule-type: flow
         degrade:
           nacos:
             server-addr: localhost:8848
             data-id: ${spring.application.name}-sentinel-degrade
             group-id: SENTINEL_GROUP
-            username: ${nacos.username}
-            password: ${nacos.password}
+            username: nacos
+            password: nacos
             rule-type: degrade
         # 授权规则：来源访问控制，配合 SentinelConfig 中的 RequestOriginParser（请求头 originSource）
         authority:
@@ -36,19 +36,19 @@ spring:
             server-addr: localhost  :8848
             data-id: ${spring.application.name}-sentinel-authority
             group-id: SENTINEL_GROUP
-            username: ${nacos.username}
-            password: ${nacos.password}
+            username: nacos
+            password: nacos
             rule-type: authority
     nacos:
       discovery:
         server-addr: localhost:8848
-        username: ${nacos.username}
-        password: ${nacos.password}
+        username: nacos
+        password: nacos
       config:
         refresh-enabled: false
         server-addr: localhost:8848
-        username: ${nacos.username}
-        password: ${nacos.password}
+        username: nacos
+        password: nacos
         file-extension: yml
         group: DEFAULT_GROUP
         prefix: ${spring.application.name}

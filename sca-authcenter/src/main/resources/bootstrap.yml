@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: sca-authcenter
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        username: nacos
+        password: nacos
+      config:
+        refresh-enabled: true
+        server-addr: localhost:8848
+        username: nacos
+        password: nacos
+        file-extension: yml
+        group: DEFAULT_GROUP
+        prefix: ${spring.application.name}
+        # 共享配置：所有服务公共配置（MySQL/MyBatis等）
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: sca-common.yml
+            group: SHARED_GROUP
+            refresh: false

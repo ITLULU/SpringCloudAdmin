@@ -1,0 +1,24 @@
+# ==========================================
+# sca-authcenter 认证授权中心私有配置
+# 公共配置（datasource/mybatis等）已由 Nacos 共享配置 sca-common.yml 提供
+# ==========================================
+server:
+  port: 9999
+
+spring:
+  # 排除 sca-security 的资源服务器自动配置：
+  # 本模块是授权服务器（签发token），不是资源服务器（验签），
+  # 且 sca-security 的 SecurityFilterChain 会与本模块的授权服务器过滤链冲突
+#  autoconfigure:
+#    exclude: com.opensabre.admin.security.config.OauthSecurityConfig
+
+# 当前服务使用的数据库名（覆盖 Nacos 共享配置中的默认值）
+# sys_user / sys_role / sys_menu 等 RBAC 表位于 sca_db
+mysql:
+  db: sca_db
+
+# 开发环境日志配置
+logging:
+  level:
+    org.springframework.security: INFO
+    com.opensabre.admin: DEBUG
