@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which pdftotext python python3 2>/dev/null; echo \"---\"; pip list 2>/dev/null | grep -i -E \"pdf|pymupdf|fitz\" || true)",
+      "Bash(cd \"D:\\\\source\\\\SpringCloudAdmin\" && pdftotext -layout \"核心业务篇4-订单系统读写分离方案设计与实现.pdf\" - 2>/dev/null | head -300)",
+      "Bash(pip install PyMuPDF --quiet 2>&1 | tail -1; python -c \"import fitz; print\\('ok', fitz.__doc__\\)\" 2>&1)",
+      "Bash(cd \"D:\\\\source\\\\SpringCloudAdmin\" && pdftotext -raw \"核心业务篇4-订单系统读写分离方案设计与实现.pdf\" /tmp/order_pdf.txt 2>&1; wc -c /tmp/order_pdf.txt; pdfinfo \"核心业务篇4-订单系统读写分离方案设计与实现.pdf\" 2>/dev/null)",
+      "Bash(find \"D:\\\\source\\\\SpringCloudAdmin\\\\sca-order\" \"D:\\\\source\\\\SpringCloudAdmin\\\\sca-dao\" -type f \\\\\\( -name \"*.java\" -o -name \"*.yml\" -o -name \"*.xml\" \\\\\\) | grep -v target | sort)",
+      "Bash(ls -R \"D:\\\\source\\\\SpringCloudAdmin\\\\Database\" | head -50; echo \"====datasync====\"; find \"D:\\\\source\\\\SpringCloudAdmin\\\\sca-datasync\" -type f | grep -v target | head -30)"
+    ]
+  }
+}
