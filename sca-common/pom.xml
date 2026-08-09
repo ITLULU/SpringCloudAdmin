@@ -52,6 +52,12 @@
             <artifactId>spring-security-core</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Redis (用于分布式ID序列号，可选依赖：使用分布式ID的服务需自行引入) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
+        </dependency>
         <!-- Seata (用于 TCC 相关类，与项目其他模块保持一致) -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
