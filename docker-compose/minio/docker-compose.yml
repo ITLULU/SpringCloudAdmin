@@ -33,7 +33,8 @@ services:
       /bin/sh -c "
       mc alias set myminio http://minio:9000 minioadmin minioadmin &&
       mc mb --ignore-existing myminio/askbase &&
-      echo 'bucket askbase ready'"
+      mc mb --ignore-existing myminio/milvus-bucket &&
+      echo 'bucket askbase & milvus-bucket ready'"
     networks:
       - my-custom-network
 

@@ -1,0 +1,58 @@
+services:
+  # Milvus 依赖的元数据存储 etcd
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.14
+    container_name: milvus-etcd
+    restart: unless-stopped
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/etcd:/etcd
+    command: etcd -advertise-client-urls=http://milvus-etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Milvus 单机版（standalone），生产建议升级为 cluster 分布式部署
+  # 对象存储复用共享的 MinIO（见 docker-compose/minio，容器名 minio，同处 my-custom-network）；需先启动 minio
+  milvus-standalone:
+    image: milvusdb/milvus:v2.4.9
+    container_name: milvus-standalone
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      # 指向共享 MinIO；密钥沿用默认 minioadmin，显式指定桶名 milvus-bucket（由 minio-init 预创建）
+      MINIO_ADDRESS: minio:9000
+      MINIO_BUCKETNAME: milvus-bucket
+      MINIO_USESSL: "false"
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/milvus:/var/lib/milvus
+      - ./logs/milvus:/milvus/logs
+    ports:
+      - "19530:19530"   # gRPC SDK/API 端口（Spring AI vector-store-milvus 走此口）
+      - "9091:9091"     # metrics / 健康检查端口
+    depends_on:
+      - milvus-etcd
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 90s
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network
