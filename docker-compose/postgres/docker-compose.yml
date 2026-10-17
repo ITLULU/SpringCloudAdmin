@@ -1,0 +1,30 @@
+services:
+  postgres:
+    # 使用带 pgvector 扩展的镜像：既能做 RAG ChatMemory 存储，也能做向量库(PgVectorStore)
+    image: pgvector/pgvector:pg16
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rag
+      # 初始化时执行的 SQL 目录（见 conf/init-db.sql，创建 vector 扩展）
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./conf/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network

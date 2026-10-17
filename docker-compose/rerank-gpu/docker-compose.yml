@@ -1,0 +1,35 @@
+services:
+  rerank:
+    # TEI GPU 版：cross-encoder 精排服务，走 PyTorch(CUDA) 后端，直接加载 model.safetensors（无需 ONNX）
+    # :1.9 为通用 CUDA12 构建（支持 T4/A10/A100/L4/L40/4090 等）；较老的卡可用架构专用标签，如 :turing-1.9(V100/T4)
+    image: ghcr.io/huggingface/text-embeddings-inference:1.9
+    container_name: rerank-gpu
+    restart: unless-stopped
+    command: ["--model-id", "BAAI/bge-reranker-v2-m3", "--auto-truncate", "--dtype", "float16"]
+    ports:
+      - "8087:80"   # GPU 版映射到 8087，可与 CPU 版(8086)共存；精排接口 http://localhost:8087/rerank
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      # 可与 CPU 版共用同一份模型缓存：改成 - ../rerank/data:/data 复用已下载的 safetensors
+      - ./data:/data
+    networks:
+      - my-custom-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all            # 需要限定单卡可改为 count: 1 或 device_ids: ['0']
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network

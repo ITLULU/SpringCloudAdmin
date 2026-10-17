@@ -1,0 +1,31 @@
+services:
+  rerank:
+    # Text Embeddings Inference (TEI)，cross-encoder 精排服务
+    # 默认用 CPU 镜像；有 GPU 可改用 ghcr.io/huggingface/text-embeddings-inference:1.9（并加 deploy.resources 分配 gpu）
+    # 版本说明：HF 已改为返回相对 307 Location，旧版(1.5, hf-hub 0.3.2)报 'relative URL without a base'，需 >=1.6
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    container_name: rerank
+    restart: unless-stopped
+    command: ["--model-id", "BAAI/bge-reranker-v2-m3", "--auto-truncate"]
+    ports:
+      - "8086:80"   # 8080 已被 sca-web 占用，这里映射到 8086；精排接口 http://localhost:8086/rerank
+    environment:
+      # 首次启动会从 huggingface.co 拉取 ~2GB 模型到 ./data
+      # 注意：不要设 HF_ENDPOINT=https://hf-mirror.com，TEI 的 Rust hf-hub 客户端会因镜像返回相对 URL 报 'relative URL without a base' 崩溃
+      # 若直连 huggingface.co 受限，建议预先手动下载模型到 ./data/BAAI/bge-reranker-v2-m3 后离线启动
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/data
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network
