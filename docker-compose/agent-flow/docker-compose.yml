@@ -1,0 +1,142 @@
+# agent-flow：DAG 创作工作流服务（Spring Boot 3.5 / JDK21）+ 自带 PG16（pgvector）库。
+# 与 mysql / qdrant / nacos 等同挂 my-custom-network：容器名即 DNS，
+# 其它服务直接访问 http://agent-flow-server:8080，库是 agent-flow-db:5432。
+#
+# 自包含：本文件不引用任何源码目录。镜像由 agent-flow 项目构建/发布后在此直接使用：
+#   cd /path/to/agent-flow && DOCKER_BUILDKIT=1 docker build -t agentflow/server:0.1.0 server/agent-flow-server
+#   （或由 CI 构建推送，这里只负责 docker pull / 使用本地同名镜像）
+#
+# 前置：
+#   ① 网络不存在时先建：bash docker-compose/network.sh（或 docker network create my-custom-network）
+#   ② 秘密文件在本目录 secrets/：首次执行 bash gen-secrets.sh 生成（700/600，已被 .gitignore 覆盖）
+#
+# 注意：这是 agent-flow 唯一一套部署定义（原 agent-flow 仓库根目录的同名文件已删除，避免两处漂移）。
+# macOS 上 ./data 绑定挂载可写；Linux 宿主需先 chown -R 10001 ./data/library（容器内以 uid 10001 运行）。
+
+services:
+  agent-flow-db:
+    image: pgvector/pgvector:pg16
+    container_name: agent-flow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agentflow
+      POSTGRES_USER: agentflow
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    secrets:
+      - db_password
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentflow -d agentflow"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  agent-flow-server:
+    image: agentflow/server:0.1.0
+    container_name: agent-flow-server
+    restart: unless-stopped
+    depends_on:
+      agent-flow-db: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # 服务名带项目前缀：共享网络上的通用名 db 容易和别人的容器别名撞车
+      DB_URL: jdbc:postgresql://agent-flow-db:5432/agentflow
+      DB_USER: agentflow
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      # 鉴权三件套：enabled=true 且 jwt-secret 缺失时启动即失败（P3 fail-fast）
+      AGENTFLOW_SECURITY_ENABLED: "true"
+      AGENTFLOW_JWT_SECRET_FILE: /run/secrets/jwt_secret
+      AGENTFLOW_MASTER_KEY_FILE: /run/secrets/master_key
+      # 主密钥轮换窗口（P7-3#16）：写入旧密钥后旧密文仍可解，新密文只用 master_key；空文件=不启用双读
+      AGENTFLOW_MASTER_KEY_PREVIOUS_FILE: /run/secrets/master_key_previous
+      # Prometheus 抓取身份：仅解锁 /actuator/prometheus（P7-2c），与业务 JWT/API Token 互不通用
+      AGENTFLOW_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+      AI_API_KEY_FILE: /run/secrets/ai_api_key
+      WECHAT_APPID_FILE: /run/secrets/wechat_appid
+      WECHAT_SECRET_FILE: /run/secrets/wechat_secret
+      AGENTFLOW_LIBRARY_DIR: /app/data/library
+      # 管理员只由这里显式注入（P7-2a）：注册接口永不授予 admin，留空则系统里没有任何管理员
+      AGENTFLOW_BOOTSTRAP_ADMIN_USERNAME: ${AGENTFLOW_BOOTSTRAP_ADMIN_USERNAME:-}
+      AGENTFLOW_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/bootstrap_admin_password
+      # 成品 → 对象存储副本同步（P7-3#12b）。默认关：关时不建客户端、不排扫描、一个字节也不出网。
+      # 打开要同时给 endpoint/bucket（明文可配）与 AK/SK（只走 secret 文件）；配置不全时启动即失败。
+      # MinIO 在同网络时用服务名：AGENTFLOW_STORAGE_ENDPOINT=http://minio:9000
+      AGENTFLOW_STORAGE_ENABLED: ${AGENTFLOW_STORAGE_ENABLED:-false}
+      AGENTFLOW_STORAGE_ENDPOINT: ${AGENTFLOW_STORAGE_ENDPOINT:-}
+      AGENTFLOW_STORAGE_BUCKET: ${AGENTFLOW_STORAGE_BUCKET:-}
+      AGENTFLOW_STORAGE_REGION: ${AGENTFLOW_STORAGE_REGION:-us-east-1}
+      AGENTFLOW_STORAGE_KEY_PREFIX: ${AGENTFLOW_STORAGE_KEY_PREFIX:-artifacts}
+      AGENTFLOW_STORAGE_ACCESS_KEY_FILE: /run/secrets/storage_access_key
+      AGENTFLOW_STORAGE_SECRET_KEY_FILE: /run/secrets/storage_secret_key
+      # 执行闸门与跨实例配额（P7-3#10 / #11）。默认值即应用内默认，留空=不改行为。
+      # 单实例只需管 max-concurrent；多实例必须打开 global-quota——否则"每实例 16"就是全局 16×N。
+      AGENTFLOW_EXEC_MAX_CONCURRENT: ${AGENTFLOW_EXEC_MAX_CONCURRENT:-16}
+      AGENTFLOW_EXEC_MAX_QUEUED: ${AGENTFLOW_EXEC_MAX_QUEUED:-64}
+      AGENTFLOW_EXEC_ACQUIRE_TIMEOUT: ${AGENTFLOW_EXEC_ACQUIRE_TIMEOUT:-5m}
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_ENABLED: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_ENABLED:-false}
+      # enabled=true 时 max-concurrent 必填（留空启动即失败）；per-user 为 0 表示只受全局上限约束
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_MAX_CONCURRENT: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_MAX_CONCURRENT:-}
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_PER_USER_MAX_CONCURRENT: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_PER_USER_MAX_CONCURRENT:-0}
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_LEASE_TTL: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_LEASE_TTL:-10m}
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_RENEW_INTERVAL: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_RENEW_INTERVAL:-30s}
+      AGENTFLOW_EXEC_GLOBAL_QUOTA_RESERVE_RETRY_INTERVAL: ${AGENTFLOW_EXEC_GLOBAL_QUOTA_RESERVE_RETRY_INTERVAL:-1s}
+      # 同层并行支路宽度（P7-3#18）；exec.max-concurrent × 本值才是进程内节点任务上界
+      AGENTFLOW_ENGINE_MAX_PARALLEL_NODES: ${AGENTFLOW_ENGINE_MAX_PARALLEL_NODES:-8}
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+      # 若要从宿主用客户端连库，解开下一行（5432 已被同网络的 postgres 占用）
+      # - "15432:5432"
+    volumes:
+      - ./data/library:/app/data/library
+    secrets:
+      - db_password
+      - jwt_secret
+      - master_key
+      - master_key_previous
+      - metrics_token
+      - ai_api_key
+      - wechat_appid
+      - wechat_secret
+      - bootstrap_admin_password
+      - storage_access_key
+      - storage_secret_key
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    read_only: true
+
+secrets:
+  db_password: { file: ./secrets/db_password }
+  jwt_secret: { file: ./secrets/jwt_secret }
+  master_key: { file: ./secrets/master_key }
+  master_key_previous: { file: ./secrets/master_key_previous }
+  metrics_token: { file: ./secrets/metrics_token }
+  ai_api_key: { file: ./secrets/ai_api_key }
+  wechat_appid: { file: ./secrets/wechat_appid }
+  wechat_secret: { file: ./secrets/wechat_secret }
+  bootstrap_admin_password: { file: ./secrets/bootstrap_admin_password }
+  # 未启用对象存储同步时留空文件即可（entrypoint 按"未配置"处理，不会把空串当密钥去签名）
+  storage_access_key: { file: ./secrets/storage_access_key }
+  storage_secret_key: { file: ./secrets/storage_secret_key }
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network
