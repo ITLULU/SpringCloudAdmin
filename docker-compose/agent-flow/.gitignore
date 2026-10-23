@@ -3,3 +3,5 @@ data/
 secrets/
 # 备份目录里是真实的 pg_dump 与成品打包，一旦 rotate 就带业务数据，禁止跟 compose 一起提交
 backups/
+# compose 的本地覆盖值：今天只放 endpoint/bucket，但它是 secrets 的天然替代入口，一并挡掉
+.env

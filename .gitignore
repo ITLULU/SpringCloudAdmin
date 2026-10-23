@@ -44,3 +44,13 @@ pom-xml-flattened
 Thumbs.db
 
 .setting
+
+# 本机 Metal 精排的运行时资产：二进制包 16MB、GGUF 数百 MB，且都能由 install.sh 重新取——不入库
+rerank-apple-gpu/runtime/
+rerank-apple-gpu/models/
+rerank-apple-gpu/logs/
+rerank-apple-gpu/llama.pid
+rerank-apple-gpu/SHA256SUMS
+
+# rerank-mac 的模型权重（fetch-model.sh 预下载，1GB+）：只挂进容器，绝不入库
+docker-compose/rerank-mac/model/

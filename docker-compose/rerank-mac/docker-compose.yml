@@ -1,0 +1,61 @@
+services:
+  rerank-mac:
+    # 本机（Apple Silicon）专用精排服务
+    # ------------------------------------------------------------------
+    # 为什么不是 arm64 原生镜像：TEI 的 CPU 镜像**有** arm64 档（`ghcr.io/huggingface/text-embeddings-inference:cpu-arm64-1.9`，
+    # 已实测存在）——早期注释说"只发布 amd64"是错的，已更正。这里仍留 amd64 + Rosetta 是**历史选择**，
+    # 因为下面那条 warmup OOM（exit 137）是在 amd64 转译形态下量出来并靠 `--max-batch-tokens 1024` 压住的；
+    # 换 arm64 原生要先在同一套收紧参数下重跑一次预热，确认不再 OOM（而且大概率能放宽回默认值）。
+    # 另一条不变的前提：macOS 版 Docker 没有 GPU 直通（rerank-gpu 的 nvidia device reserved 在本机不可用），
+    # 所以无论 amd64 还是 arm64，这里都只有 CPU——要用 Apple GPU 走 ../rerank-apple-gpu。
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    platform: linux/amd64
+    container_name: rerank-mac
+    restart: unless-stopped
+    # 模型离线挂载（./model 目录由 fetch-model.sh 从 hf-mirror 预下载），
+    # 因此不再让 TEI 运行时访问 huggingface.co（国内直连不通，且设 HF_ENDPOINT 会让
+    # TEI 的 Rust hf-hub 客户端因相对 URL 崩溃——见 rerank/ 目录的注释）
+    # 预热批大小收紧：默认 max-batch-tokens=16384 在 amd64 转译 + 9 个 worker 下会瞬时冲到 6GB+，
+    # 本机（Docker VM 16GB、宿主仅剩百来 MB）实测 warmup 阶段被 OOM kill（exit 137, OOMKilled=true）
+    #
+    # max-client-batch-size 必须 ≥ 调用方一次发来的候选条数，否则**整次精排被 400 拒掉**：
+    # rag-kb 的 TeiReranker 把融合后的全部候选一次发过来（top-n=20 ⇒ 可达 40 条），
+    # 拒答之后 Java 侧按设计降级成"融合名次截断"，于是 enabled=true 也等于没开——只有一行 WARN。
+    # 上一版填 8 是照抄"省内存"的直觉，管错了对象：真正兜住内存的是 max-batch-tokens
+    # （TEI 会把客户端 batch 再切成 <=1024 token 的内部批），客户端 batch 只是队列入口。
+    #
+    # max-concurrent-requests 同时是**信号量池大小**，不是只管并发：TEI 按待打分的每条文本占 1 个 permit
+    # （core/src/infer.rs `try_acquire_permit` → "no permits available" → HTTP 429 Model is overloaded）。
+    # 所以它必须 ≥ max-client-batch-size，否则一个 20 条候选的批次照样被拒——实测 16 时 20 条必挂、10 条能过，
+    # 断点正好在 permit 数上，而不是 batch-size 上限上。
+    command:
+      [
+        "--model-id", "/data/model",
+        "--auto-truncate",
+        "--max-batch-tokens", "1024",
+        "--max-client-batch-size", "48",
+        "--tokenization-workers", "2",
+        "--max-concurrent-requests", "64",
+      ]
+    ports:
+      - "8088:80"   # 8086=rerank(cpu)、8087=rerank-gpu 已占用；本机版走 8088
+    environment:
+      TZ: Asia/Shanghai
+      HF_HUB_OFFLINE: "1"
+      # 转译容器仍按 x86 优化指令集调度，显式限制线程数避免 VM 16GB 下抖动
+      OMP_NUM_THREADS: "4"
+    volumes:
+      - ./model:/data/model:ro
+    networks:
+      - my-custom-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 180s
+
+networks:
+  my-custom-network:
+    external: true
+    name: my-custom-network
