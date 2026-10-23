@@ -67,7 +67,9 @@ bash stop.sh             # TERM → 15s → KILL，并清 pid 文件
   20 条候选的名次绝对差之和 14，平均每条 0.7 位。差异都发生在近似并列的名次上
   （Metal 侧第 2/3 名分差仅 0.078 logit）。同一二进制换设备也是同样现象（`-ngl 99` vs `-ngl 0`
   最大分差 0.515，且只出现在无关填充文档上）。**量化噪声级，不是语义分歧。**
-- 40 条候选时 TEI 约 9.4 s，Metal 侧未测（`-np 4` 槽位会排队，需要时再量）。
+- 40 条候选（真实 `top-n=20` 融合后的最大发送量）：TEI CPU 约 9.4 s，Metal 已补测 = 653 ms 首测 / 449 ms 复测
+  （Java `RestClient` 侧口径，含序列化与一次连接建立，比 `bench.sh` 的 curl 口径略高）。
+  `-np 4` 只影响**并发**请求排队，单请求内的 40 条是整批过的，所以这里没有排队。
 
 ## 四、接入 rag-kb：改一个配置值，Java 代码零改动
 
@@ -80,9 +82,26 @@ export RERANK_URL=http://127.0.0.1:8089/rerank
 （`TeiRerankerTest#teiNativeBareArray_isParsedWithScoreField` 钉的就是前者），
 llama-server 回的正是裸数组 `{"index","score"}`。
 
-> 这一条接入结论目前是 **`[静态]`**：契约形状、字段名、乱序回映射、野 index 处理都在代码与既有测试里对得上，
-> 但本机没有 `~/.m2` 依赖仓，`mvn -o -pl rag-kb test` 跑不起来，**没有做端到端实跑**。
-> 要升级成 `[动态]`，需要能构建 spring-ai-agent（首次要联网拉依赖）。
+> 这一条接入结论是 **`[动态]`**（2026-10-23 22:50 实测，用 `TeiReranker` **生产代码本体**直接打 8089，零改动）：
+>
+> ```bash
+> # 依赖仓在 /Users/a/m2/repository（settings.xml 里配的），联网走 aliyun 镜像
+> export JAVA_HOME=/Users/a/tools/jdk-21.0.12.1+1/Contents/Home
+> cd /Users/a/source/spring-ai-agent && mvn -B test     # 40 测试 0 失败，BUILD SUCCESS
+> mvn -B -q -DskipTests -pl rag-kb dependency:build-classpath -Dmdep.outputFile=/tmp/ragkb_cp.txt
+> CP="/Users/a/source/spring-ai-agent/rag-kb/target/classes:$(cat /tmp/ragkb_cp.txt)"
+> javac -nowarn -cp "$CP" -d /tmp/rrcheck /Users/a/source/SpringCloudAdmin/rerank-apple-gpu/RerankLiveCheck.java
+> java -cp "$CP:/tmp/rrcheck" RerankLiveCheck           # 从 /tmp 跑：这台机器某些 cwd 下出站连接会被拦
+> ```
+>
+> 实测三件事，缺一不可：
+> 1. **20 候选 445 ms、40 候选 653 ms 均整批返回**，Top-1 = `RRF 的平滑常数 k…`（这题的正确答案）；
+> 2. **`rerankScore` 非 null** ⇒ 走的是真精排分支，不是"融合名次截断"的静默降级（这条判据能区分二者：降级路径返回的 record 没打过分）；
+> 3. **反向验证**：把 URL 换成死端口 8099 ⇒ WARN 留痕 + 18 ms 降级、不抛异常。只验正常路径不算验过。
+>
+> 分数是负数（llama.cpp 回原始 logit，TEI 回 sigmoid 后的 0~1），`parseAndApply` 与 `withRerank`
+> 实测照收不误——再次确认全链路只做排序、没有阈值判断，所以负分不会把候选全砍掉。
+> 40 候选时 653 ms 仍远低于 `SimpleClientHttpRequestFactory` 的 5 s 读超时。
 
 回滚：`RERANK_URL` 改回 `http://127.0.0.1:8088/rerank` 即可，`bash stop.sh` 停掉 Metal 服务。
 
