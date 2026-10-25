@@ -71,7 +71,7 @@ INSERT IGNORE INTO `distributed_lock` (`lock_key`, `lock_value`, `expire`) VALUE
 
 
 
----第二步：在各业务数据库创建 undo_log 表
+-- 第二步：在各业务数据库创建 undo_log 表
 
 -- 在每个业务数据库中执行
 CREATE TABLE IF NOT EXISTS `undo_log` (
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `undo_log` (
 
 
 
----tcc 模式解决幂等、悬挂和空回滚问题，每一个业务库都需要
+-- tcc 模式解决幂等、悬挂和空回滚问题，每一个业务库都需要
 
 CREATE TABLE IF NOT EXISTS `tcc_fence_log`
 (
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS `tcc_fence_log`
   DEFAULT CHARSET = utf8mb4;
 
 
----第三步：在 Nacos 中导入 Seata 配置
+-- 第三步：在 Nacos 中导入 Seata 配置
 
 访问 Nacos 控制台 http://服务器IP:8848/nacos，手动创建配置：
 Data ID：seataServer.properties

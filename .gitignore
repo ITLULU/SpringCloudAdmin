@@ -52,5 +52,42 @@ rerank-apple-gpu/logs/
 rerank-apple-gpu/llama.pid
 rerank-apple-gpu/SHA256SUMS
 
+# ===================================================================
+# docker-compose 运行时数据：各中间件容器挂载的 data/、logs/ 目录，
+# 均为本机运行时产物（数据库文件、索引、日志、消息存储等），绝不入库；
+# 同级的 docker-compose.yml、start.sh、conf/、*.json 等配置照常提交。
+# ===================================================================
+# Elasticsearch
+/docker-compose/es/data/
+/docker-compose/es/logs/
+# Milvus
+/docker-compose/milvus/data/
+/docker-compose/milvus/logs/
+# MinIO
+/docker-compose/minio/data/
+/docker-compose/minio/logs/
+# MySQL
+/docker-compose/mysql/data/
+/docker-compose/mysql/logs/
+# Nacos
+/docker-compose/nacos/logs/
+# PostgreSQL
+/docker-compose/postgres/data/
+# Qdrant
+/docker-compose/qdrant/data/
+# RabbitMQ
+/docker-compose/rabbitmq/data/
+/docker-compose/rabbitmq/logs/
+# Redis
+/docker-compose/redis/data/
+/docker-compose/redis/logs/
+# RocketMQ（broker/、namesrv/ 内只有 store 与 logs；broker.conf 在上级目录，照常提交）
+/docker-compose/rocketmq/broker/
+/docker-compose/rocketmq/namesrv/
+
 # rerank-mac 的模型权重（fetch-model.sh 预下载，1GB+）：只挂进容器，绝不入库
-docker-compose/rerank-mac/model/
+/docker-compose/rerank-mac/model/
+# 本机 Mac 一键部署脚本
+/docker-compose/init-data-mac.sh
+/docker-compose/publish-nacos-mac.sh
+/docker-compose/up-all-mac.sh
