@@ -25,6 +25,12 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - ./data/pg:/var/lib/postgresql/data
+    ports:
+      # 宿主客户端（DBeaver/psql/IDEA Database）连 127.0.0.1:15432。
+      # 刻意只绑 127.0.0.1：这个库的口令是 secrets/db_password，绑 0.0.0.0 等于把 PG 开放给整个局域网；
+      # 也不用 5432——同网络的独立 postgres 服务占了它，且两个 compose 同时 up 时端口会撞车。
+      # 要改宿主端口用环境变量：AGENTFLOW_DB_HOST_PORT=25432 docker compose up -d agent-flow-db
+      - "127.0.0.1:${AGENTFLOW_DB_HOST_PORT:-15432}:5432"
     secrets:
       - db_password
     networks:
@@ -89,8 +95,8 @@ services:
       TZ: Asia/Shanghai
     ports:
       - "8080:8080"
-      # 若要从宿主用客户端连库，解开下一行（5432 已被同网络的 postgres 占用）
-      # - "15432:5432"
+      # 宿主连库请用 agent-flow-db 自己发布的 127.0.0.1:15432（见上面 ports 段），
+      # 不要在这里再发布一份 5432——同宿主同端口重复映射会直接 up 失败。
     volumes:
       - ./data/library:/app/data/library
     secrets:
