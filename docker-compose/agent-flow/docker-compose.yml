@@ -50,9 +50,10 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       # 服务名带项目前缀：共享网络上的通用名 db 容易和别人的容器别名撞车
-      DB_URL: jdbc:postgresql://agent-flow-db:5432/agentflow
-      DB_USER: agentflow
-      DB_PASSWORD_FILE: /run/secrets/db_password
+      # 变量名与 application.yml 的占位符一一对应（PG_DB_*）；入口脚本按 *_FILE 白名单解析成明文 env
+      PG_DB_URL: jdbc:postgresql://agent-flow-db:5432/agentflow
+      PG_DB_USER: agentflow
+      PG_DB_PASSWORD_FILE: /run/secrets/db_password
       # 鉴权三件套：enabled=true 且 jwt-secret 缺失时启动即失败（P3 fail-fast）
       AGENTFLOW_SECURITY_ENABLED: "true"
       AGENTFLOW_JWT_SECRET_FILE: /run/secrets/jwt_secret
